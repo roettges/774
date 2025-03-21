@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import helper_funcs as hf
 import py_stringmatching as sm
+import argparse
 
 device = "cpu" # change on Mac to "mps" for GPU support 
 # if torch.backends.mps.is_available():
@@ -15,44 +16,83 @@ device = "cpu" # change on Mac to "mps" for GPU support
 # if time allows we will compare against GPT-3 or other LLMs to see if they can classify the pairs as duplicates or not.
 
 def main():
+    parser = argparse.ArgumentParser(description="Question Duplicate Detection System")
+    parser.add_argument(
+        "--mode",
+        type=int,
+        choices=[1, 2, 3, 4, 5],
+        help="""Select operation mode:
+        1: Siamese Network
+        2: GPT4 Analysis
+        3: Classical Classifier
+        4: Save Similarity Scores
+        5: Miscellaneous Tests"""
+    )
+    args = parser.parse_args()
+    
+    if args.mode is None:
+        print("\nPlease select a mode:")
+        print("1: Siamese Network")
+        print("2: GPT4 Analysis")
+        print("3: Classical Classifier")
+        print("4: Save Similarity Scores")
+        print("5: Miscellaneous Tests")
+        args.mode = int(input("\nEnter your choice (1-5): "))
+        
+    #load data first 
     df = getData()
     # TODO: split the data into train, validation, and test sets
-    # for now just going to test some tokenization methods from https://anhaidgroup.github.io/py_stringmatching/v0.4.2/Tutorial.html
-    # get an example q1 string and q2 string
-    q1 = df.iloc[0]['question1']
-    q2 = df.iloc[0]['question2']
-    print(f"Example question 1: {q1}")
-    print(f"Example question 2: {q2}")
-    #TODO: clean the data, lowercase, do we want to remove special characters, do we want to remove stop words?
-    # if we want to remove stop words we likely need to use a library like nltk
-    # for now just going to lowercase the data
-    q1 = q1.lower()
-    q2 = q2.lower()
-    # create a q3 tokenizer
-    qg3_tok = sm.QgramTokenizer(qval=3)
-    # tokenize the questions
-    q1_tokens = qg3_tok.tokenize(q1)
-    q2_tokens = qg3_tok.tokenize(q2)
-    print(f"Tokenized question 1: {q1_tokens}")
-    print(f"Tokenized question 2: {q2_tokens}")
-    #lets also create a simple whitespace tokenizer (like a word based but we still have all sorts of potential characters)
-    ws_tok = sm.WhitespaceTokenizer()
-    q1_tokens_ws = ws_tok.tokenize(q1)
-    q2_tokens_ws = ws_tok.tokenize(q2)
-    print(f"Whitespace tokenized question 1: {q1_tokens_ws}")
-    print(f"Whitespace tokenized question 2: {q2_tokens_ws}")
-    # now lets calculate the jaccard similarity between the two tokenized questions
-    #create a Jaccard similarity measure object
-    jac = sm.Jaccard()
-    test_jac_3gram = jac.get_raw_score(q1_tokens, q2_tokens) 
-    # now lets calculate the jaccard similarity between the two whitespace tokenized questions
-    test_jac_ws = jac.get_raw_score(q1_tokens_ws, q2_tokens_ws) 
-    # create a Levenshtein similarity measure object
-    lev = sm.Levenshtein()
-    test_lev = lev.get_raw_score(q1, q2) # note q1 and q2 qre the og strings
-    print(f"Jaccard similarity (3-gram): {test_jac_3gram}")
-    print(f"Jaccard similarity (whitespace): {test_jac_ws}")
-    print(f"Levenshtein similarity: {test_lev}")
+    if args.mode == 1:
+        print("Running Siamese Network...")
+        # TODO: Add Siamese network logic
+    elif args.mode == 2:
+        print("Running GPT4 Analysis...")
+        # TODO: Add GPT4 logic
+    elif args.mode == 3:
+        print("Running Classical Classifier...")
+        # TODO: Add classifier logic
+    elif args.mode == 4:
+        print("Saving Similarity Scores...")
+        # TODO: Add similarity score logic
+    elif args.mode == 5:
+        print("Running Miscellaneous Tests...")
+        # Current test logic here
+        # for now just going to test some tokenization methods from https://anhaidgroup.github.io/py_stringmatching/v0.4.2/Tutorial.html
+        # get an example q1 string and q2 string
+        q1 = df.iloc[0]['question1']
+        q2 = df.iloc[0]['question2']
+        print(f"Example question 1: {q1}")
+        print(f"Example question 2: {q2}")
+        #TODO: clean the data, lowercase, do we want to remove special characters, do we want to remove stop words?
+        # if we want to remove stop words we likely need to use a library like nltk
+        # for now just going to lowercase the data
+        q1 = q1.lower()
+        q2 = q2.lower()
+        # create a q3 tokenizer
+        qg3_tok = sm.QgramTokenizer(qval=3)
+        # tokenize the questions
+        q1_tokens = qg3_tok.tokenize(q1)
+        q2_tokens = qg3_tok.tokenize(q2)
+        print(f"Tokenized question 1: {q1_tokens}")
+        print(f"Tokenized question 2: {q2_tokens}")
+        #lets also create a simple whitespace tokenizer (like a word based but we still have all sorts of potential characters)
+        ws_tok = sm.WhitespaceTokenizer()
+        q1_tokens_ws = ws_tok.tokenize(q1)
+        q2_tokens_ws = ws_tok.tokenize(q2)
+        print(f"Whitespace tokenized question 1: {q1_tokens_ws}")
+        print(f"Whitespace tokenized question 2: {q2_tokens_ws}")
+        # now lets calculate the jaccard similarity between the two tokenized questions
+        #create a Jaccard similarity measure object
+        jac = sm.Jaccard()
+        test_jac_3gram = jac.get_raw_score(q1_tokens, q2_tokens) 
+        # now lets calculate the jaccard similarity between the two whitespace tokenized questions
+        test_jac_ws = jac.get_raw_score(q1_tokens_ws, q2_tokens_ws) 
+        # create a Levenshtein similarity measure object
+        lev = sm.Levenshtein()
+        test_lev = lev.get_raw_score(q1, q2) # note q1 and q2 qre the og strings
+        print(f"Jaccard similarity (3-gram): {test_jac_3gram}")
+        print(f"Jaccard similarity (whitespace): {test_jac_ws}")
+        print(f"Levenshtein similarity: {test_lev}")
     
     
 def getData():
@@ -94,23 +134,6 @@ def splitData(df):
 # (3) creating a tokenizer object (of the selected type) and using it to tokenize the two given strings x and y
 # (4) creating a similarity measure object (of the selected type) and applying it to the output of the tokenizer to compute a similarity score
 
-
-
-def tokenizeData(df, method):
-    """
-    Tokenize the questions in the dataframe using a simple whitespace tokenizer.
-    """
-    #not implemented error
-    raise NotImplementedError("Tokenization method not implemented. Please implement the tokenizeData function.")
-
-
-def calcJaccard(train_set):
-    # we should build a helper function or use apis to calculate the jaccard similarity for each pair
-    raise NotImplementedError("Jaccard similarity calculation not implemented. Please implement the calcJaccard function.")
-
-def calcTFIDF(train_set):
-    # build index and calculate the tf-idf for each pair
-    raise NotImplementedError("TF-IDF calculation not implemented. Please implement the calcTFIDF function.")
 
 def buildFeatureVector_for_Deep_Learning(train_set):
     raise NotImplementedError("Deep Learning feature vector construction not implemented. Please implement the buildFeatureVector_for_Deep_Learning function.")
