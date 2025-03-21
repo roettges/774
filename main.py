@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import os
 import helper_funcs as hf
+import py_stringmatching as sm
 
 device = "cpu" # change on Mac to "mps" for GPU support 
 # if torch.backends.mps.is_available():
@@ -9,7 +10,51 @@ device = "cpu" # change on Mac to "mps" for GPU support
 # else:
 #     device = "cpu"
 
+# overall goal: use methods like Jaccard, TF-IDF, and rule-based methods to build a feature vector for each pair of questions in the quora dataset, and then use a deep learning model to classify them as duplicates or not.
+# we will compare to a simple approach of weighted scoring system of similarity scores from the different methods.
+# if time allows we will compare against GPT-3 or other LLMs to see if they can classify the pairs as duplicates or not.
 
+def main():
+    df = getData()
+    # TODO: split the data into train, validation, and test sets
+    # for now just going to test some tokenization methods from https://anhaidgroup.github.io/py_stringmatching/v0.4.2/Tutorial.html
+    # get an example q1 string and q2 string
+    q1 = df.iloc[0]['question1']
+    q2 = df.iloc[0]['question2']
+    print(f"Example question 1: {q1}")
+    print(f"Example question 2: {q2}")
+    #TODO: clean the data, lowercase, do we want to remove special characters, do we want to remove stop words?
+    # if we want to remove stop words we likely need to use a library like nltk
+    # for now just going to lowercase the data
+    q1 = q1.lower()
+    q2 = q2.lower()
+    # create a q3 tokenizer
+    qg3_tok = sm.QgramTokenizer(qval=3)
+    # tokenize the questions
+    q1_tokens = qg3_tok.tokenize(q1)
+    q2_tokens = qg3_tok.tokenize(q2)
+    print(f"Tokenized question 1: {q1_tokens}")
+    print(f"Tokenized question 2: {q2_tokens}")
+    #lets also create a simple whitespace tokenizer (like a word based but we still have all sorts of potential characters)
+    ws_tok = sm.WhitespaceTokenizer()
+    q1_tokens_ws = ws_tok.tokenize(q1)
+    q2_tokens_ws = ws_tok.tokenize(q2)
+    print(f"Whitespace tokenized question 1: {q1_tokens_ws}")
+    print(f"Whitespace tokenized question 2: {q2_tokens_ws}")
+    # now lets calculate the jaccard similarity between the two tokenized questions
+    #create a Jaccard similarity measure object
+    jac = sm.Jaccard()
+    test_jac_3gram = jac.get_raw_score(q1_tokens, q2_tokens) 
+    # now lets calculate the jaccard similarity between the two whitespace tokenized questions
+    test_jac_ws = jac.get_raw_score(q1_tokens_ws, q2_tokens_ws) 
+    # create a Levenshtein similarity measure object
+    lev = sm.Levenshtein()
+    test_lev = lev.get_raw_score(q1, q2) # note q1 and q2 qre the og strings
+    print(f"Jaccard similarity (3-gram): {test_jac_3gram}")
+    print(f"Jaccard similarity (whitespace): {test_jac_ws}")
+    print(f"Levenshtein similarity: {test_lev}")
+    
+    
 def getData():
     """
     Load the quora question pairs dataset from data.
@@ -41,6 +86,16 @@ def splitData(df):
 
     return train_df, val_df, test_df
 
+
+# using py_stringmatching (see webpage: https://anhaidgroup.github.io/py_stringmatching/v0.4.2/Tutorial.html)
+# Computing a similarity score between two given strings x and y then typically consists of four steps: 
+# (1) selecting a similarity measure type
+# (2) selecting a tokenizer type
+# (3) creating a tokenizer object (of the selected type) and using it to tokenize the two given strings x and y
+# (4) creating a similarity measure object (of the selected type) and applying it to the output of the tokenizer to compute a similarity score
+
+
+
 def tokenizeData(df, method):
     """
     Tokenize the questions in the dataframe using a simple whitespace tokenizer.
@@ -69,5 +124,4 @@ def evaluateModel(model, val_set):
     raise NotImplementedError("Model evaluation not implemented. Please implement the evaluateModel function.")
 
 if __name__ == "__main__":
-    # Load the data
-    df = getData()
+    main()
