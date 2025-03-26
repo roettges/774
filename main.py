@@ -4,6 +4,7 @@ import os
 import helper_funcs as hf
 import py_stringmatching as sm
 import argparse
+from gpt4 import openai_api_call
 
 device = "cpu" # change on Mac to "mps" for GPU support 
 # if torch.backends.mps.is_available():
@@ -47,7 +48,9 @@ def main():
         # TODO: Add Siamese network logic
     elif args.mode == 2:
         print("Running GPT4 Analysis...")
-        # TODO: Add GPT4 logic
+        q1 = df.iloc[0]['question1']
+        q2 = df.iloc[0]['question2']
+        print(openai_api_call(q1, q2))
     elif args.mode == 3:
         print("Running Classical Classifier...")
         # TODO: Add classifier logic
