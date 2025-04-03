@@ -5,6 +5,7 @@ import helper_funcs as hf
 import py_stringmatching as sm
 import argparse
 from gpt4 import openai_api_call
+from siamese_model import train_siamese
 
 device = "cpu" # change on Mac to "mps" for GPU support 
 # if torch.backends.mps.is_available():
@@ -46,6 +47,16 @@ def main():
     if args.mode == 1:
         print("Running Siamese Network...")
         # TODO: Add Siamese network logic
+        train_df, val_df, test_df = splitData(df)
+        
+        # jac = sm.Jaccard()
+        # lev = sm.Levenshtein()
+        # for d in [train_df, val_df, test_df]:
+        #     d['sim_jaccard'] = [jac.get_raw_score(a.lower().split(), b.lower().split()) for a, b in zip(d['question1'], d['question2'])]
+        #     d['sim_levenshtein'] = [lev.get_raw_score(a.lower(), b.lower()) for a, b in zip(d['question1'], d['question2'])]
+    
+        train_siamese(train_df, val_df, device=device)
+        
     elif args.mode == 2:
         print("Running GPT4 Analysis...")
         q1 = df.iloc[0]['question1']
