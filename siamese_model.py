@@ -36,12 +36,13 @@ class SiameseDataset(Dataset):
         if self.use_sim_features and 'sim_jaccard' in self.df.columns:
             sim_feats = torch.tensor(row[['sim_jaccard', 'sim_levenshtein']], dtype=torch.float32)
         else:
-            sim_feats = torch.zeros(2)
+            sim_feats = None
+            # sim_feats = torch.zeros(2)
 
         return emb1, emb2, sim_feats, label
 
 class SiameseNet(nn.Module):
-    def __init__(self, embedding_dim=384, sim_feature_dim=2, hidden_dim=256):
+    def __init__(self, embedding_dim=384, sim_feature_dim=0, hidden_dim=256):
         super().__init__()
         self.fc = nn.Sequential(
             nn.Linear(embedding_dim * 3 + sim_feature_dim, hidden_dim),
@@ -53,7 +54,10 @@ class SiameseNet(nn.Module):
 
     def forward(self, emb1, emb2, sim_feats):
         diff = torch.abs(emb1 - emb2)
-        concat = torch.cat((emb1, emb2, diff, sim_feats), dim=1)
+        if sim_feats is not None:
+            concat = torch.cat((emb1, emb2, diff, sim_feats), dim=1)
+        else:
+            concat = torch.cat((emb1, emb2, diff), dim=1)
         return self.fc(concat)
 
 def train_siamese(df_train, df_val, device="cpu", epochs=5, batch_size=32, use_sim_features=True):
