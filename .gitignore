@@ -12,6 +12,8 @@ temp/
 # Data folder - keep structure, ignore contents
 data/*
 !data/.gitkeep
+output/*
+
 
 # # C extensions
 # *.so

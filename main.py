@@ -67,7 +67,64 @@ def main():
         # TODO: Add classifier logic
     elif args.mode == 4:
         print("Saving Similarity Scores...")
-        # TODO: Add similarity score logic
+        #prompt user for which method to use
+        print("Please select a method to use for similarity scoring:")
+        print("1: Jaccard Similarity")
+        print("2: TF-IDF and Cosine Similarity")
+        print("3: Levenshtein Distance")
+        
+        method = int(input("\nEnter your choice (1-3): "))
+        #get the similarity scores
+        if method == 1:
+            # make a copy of the dataframe
+            df_copy = df.copy()
+            #prompt for parsing method, 3-gram, space, lematized words
+            print("Please select a parsing method, if you enter nothing or an invalid, then choice 1 will default:")
+            print("1: 3-gram")
+            print("2: Space")
+            print("3: Lemmatized Words")
+            # if they enter through without selecting, default to 3-gram
+            parse_method = int(input("\nEnter your choice (1-3): "))
+            # check if the user entered a valid choice and if null
+            #if not 1, 2, or 3, default to 1
+            if parse_method not in [1, 2, 3]:
+                print("Invalid choice, defaulting to 3-gram, option 1")
+                parse_method = 1
+            #TODO: prompt for stop words removal
+            print("Do you want to remove stop words?")
+            print("1: Yes")
+            print("2: No")
+            # if they enter through without selecting, default to no
+            stop_words = int(input("\nEnter your choice (1-2): "))
+            if stop_words == 1:
+                print("You chose to remove stop words")
+                stop_words = True
+            else:
+                print("You chose not to remove stop words")
+                stop_words = False
+            #TODO: handle data cleaning, tokenization, and similarity score calculation
+            hf.saveJaccard(df_copy, parse_method, stop_words)
+        elif method == 2:
+            #TODO: need to build index for the TF-IDF and Cosine Similarity
+            #TODO: handle data cleaning, tokenization, and similarity score calculation
+            #TODO: save the similarity scores to a file in the output folder
+            pass
+        elif method == 3:
+            #TODO: handle data cleaning, tokenization, and similarity score calculation
+            print("Do you want to remove stop words?")
+            print("1: Yes")
+            print("2: No")
+            # if they enter through without selecting, default to no
+            stop_words = int(input("\nEnter your choice (1-2): "))
+            if stop_words == 1:
+                print("You chose to remove stop words")
+                stop_words = True
+            else:
+                print("You chose not to remove stop words")
+                stop_words = False
+            hf.saveLevenshtein(df, stop_words)
+            #TODO: save the similarity scores to a file in the output folder
+            pass
     elif args.mode == 5:
         print("Running Miscellaneous Tests...")
         # Current test logic here

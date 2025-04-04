@@ -4,6 +4,16 @@ Repository for our 774 project for question matching
 # Install requirements
 pip install py_stringmatching numpy pandas scikit-learn openai
 
+*** You will also need to install spacy for lemmatization and stopword removal ***
+conda install -c conda-forge spacy
+*** or if you don't want to use conda for installing spacy use the following***
+pip install -U pip setuptools wheel
+pip install -U spacy
+
+*** Download English model for spacy ***
+python -m spacy download en_core_web_sm
+
+
 ***DO NOT DO THIS JUST YET *** 
 TBD but may need to also pip install nltk and then after installation, for NLTK download required data:
 nltk.download('punkt')
