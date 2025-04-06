@@ -6,6 +6,8 @@ import py_stringmatching as sm
 import argparse
 from gpt4 import gpt4_analysis
 from siamese_model import train_siamese
+from sklearn.model_selection import train_test_split
+
 
 device = "cpu" # change on Mac to "mps" for GPU support 
 # if torch.backends.mps.is_available():
@@ -43,7 +45,8 @@ def main():
         
     #load data first 
     df = getData()
-    # TODO: split the data into train, validation, and test sets
+    train, val, test = splitData(df)
+    # train, val, test = splitData(df, 4000)
     if args.mode == 1:
         print("Running Siamese Network...")
         # TODO: Add Siamese network logic
@@ -59,8 +62,10 @@ def main():
         
     elif args.mode == 2:
         print("Running GPT4 Analysis...")
+        # TODO: added .head() to keep API costs low for now
         results = gpt4_analysis(df.head())
         print(results)
+        # TODO: maybe change to pickle instead of csv later
         hf.saveData(results, "gpt4o_results", "csv")
     elif args.mode == 3:
         print("Running Classical Classifier...")
@@ -181,22 +186,51 @@ def getData():
     print(df.head())
     return df
 
-def splitData(df):
+def splitData(df, small_train_size=None):
     """
     Split the dataframe into train, validation, and test sets.
     """
     # we will need to modify this in order to ensure we have enough matches in each set, but right now this is just random
-    train_df = df.sample(frac=0.8, random_state=42)
-    temp_df = df.drop(train_df.index)
-    val_df = temp_df.sample(frac=0.5, random_state=42)
-    test_df = temp_df.drop(val_df.index)
+    # train_df = df.sample(frac=0.8, random_state=42)
+    # temp_df = df.drop(train_df.index)
+    # val_df = temp_df.sample(frac=0.5, random_state=42)
+    # test_df = temp_df.drop(val_df.index)
 
-    print(f"Train set: {len(train_df)} rows")
-    print(f"Validation set: {len(val_df)} rows")
-    print(f"Test set: {len(test_df)} rows")
+    # print(f"Train set: {len(train_df)} rows")
+    # print(f"Validation set: {len(val_df)} rows")
+    # print(f"Test set: {len(test_df)} rows")
 
-    return train_df, val_df, test_df
+    # return train_df, val_df, test_df
 
+    ############## START OF NEW CODE ##############
+    # print("len(df): ", len(df))
+    # split entire dataset by class
+    class_0 = df[df['is_duplicate'] == 0]
+    class_1 = df[df['is_duplicate'] == 1]
+
+    # grab 80% of the rows of the smaller class, or small_train_size if provided
+    min_class_size = small_train_size // 2 if small_train_size is not None else int(min(len(class_0), len(class_1)) * 0.8)
+
+    # sample same number from both classes and combine into train df
+    class_0_train = class_0.sample(n = min_class_size, random_state = 42)
+    class_1_train = class_1.sample(n = min_class_size, random_state = 42)
+    train_df = pd.concat([class_0_train, class_1_train])
+
+    # remove the entries used in train df
+    class_0_remaining = class_0.drop(class_0_train.index)
+    class_1_remaining = class_1.drop(class_1_train.index)
+    remaining_df = pd.concat([class_0_remaining, class_1_remaining])
+    
+    # split remaining data in half for test and val
+    test_df, val_df = train_test_split(remaining_df, test_size = 0.5, random_state = 42)
+    # print(len(train_df), len(test_df), len(val_df))
+
+    # sanity check to ensure no data leakage
+    assert len(set(train_df.index).intersection(set(test_df.index))) == 0
+    assert len(set(train_df.index).intersection(set(val_df.index))) == 0
+    assert len(set(test_df.index).intersection(set(val_df.index))) == 0
+    
+    return train_df, test_df, val_df
 
 # using py_stringmatching (see webpage: https://anhaidgroup.github.io/py_stringmatching/v0.4.2/Tutorial.html)
 # Computing a similarity score between two given strings x and y then typically consists of four steps: 
