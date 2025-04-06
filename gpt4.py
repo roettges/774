@@ -1,5 +1,6 @@
 import os
 import openai
+import pandas as pd
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -20,7 +21,7 @@ def process_api_response(response):
     except ValueError:
         return None
     
-    return (split_response[0], split_response[1])
+    return (1 if split_response[0] == "Y" else 0, split_response[1])
 
 def openai_api_call(q1, q2):
 
@@ -41,3 +42,26 @@ def openai_api_call(q1, q2):
     )
 
     return process_api_response(completion.choices[0].message.content)
+
+def gpt4_analysis(df):
+    is_duplicate = []
+    confidence_scores = []
+    
+    for _, row in df.iterrows():
+        q1 = row['question1']
+        q2 = row['question2']
+        
+        result = openai_api_call(q1, q2)
+        
+        if result:
+            duplicate, confidence = result
+            is_duplicate.append(duplicate)
+            confidence_scores.append(confidence)
+        else:
+            is_duplicate.append(None)
+            confidence_scores.append(None)
+    
+    df['gpt_is_duplicate'] = is_duplicate
+    df['gpt_confidence_score'] = confidence_scores
+    
+    return df

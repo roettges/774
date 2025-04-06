@@ -4,7 +4,7 @@ import os
 import helper_funcs as hf
 import py_stringmatching as sm
 import argparse
-from gpt4 import openai_api_call
+from gpt4 import gpt4_analysis
 from siamese_model import train_siamese
 
 device = "cpu" # change on Mac to "mps" for GPU support 
@@ -59,9 +59,9 @@ def main():
         
     elif args.mode == 2:
         print("Running GPT4 Analysis...")
-        q1 = df.iloc[0]['question1']
-        q2 = df.iloc[0]['question2']
-        print(openai_api_call(q1, q2))
+        results = gpt4_analysis(df.head())
+        print(results)
+        hf.saveData(results, "gpt4o_results", "csv")
     elif args.mode == 3:
         print("Running Classical Classifier...")
         # TODO: Add classifier logic
