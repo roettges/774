@@ -32,14 +32,11 @@ class SiameseDataset(Dataset):
         emb1 = self.encoder.encode(q1, convert_to_tensor=True)
         emb2 = self.encoder.encode(q2, convert_to_tensor=True)
 
-        # Optional handcrafted similarity features (e.g., Jaccard, cosine, etc.)
         if self.use_sim_features and 'sim_jaccard' in self.df.columns:
             sim_feats = torch.tensor(row[['sim_jaccard', 'sim_levenshtein']], dtype=torch.float32)
+            return emb1, emb2, sim_feats, label
         else:
-            sim_feats = None
-            # sim_feats = torch.zeros(2)
-
-        return emb1, emb2, sim_feats, label
+            return emb1, emb2, label  # No sim_feats
 
 class SiameseNet(nn.Module):
     def __init__(self, embedding_dim=384, sim_feature_dim=0, hidden_dim=256):
@@ -82,12 +79,15 @@ def train_siamese(df_train, df_val, df_test, device="cpu", epochs=10, batch_size
     for epoch in range(epochs):
         model.train()
         total_loss = 0
-        for emb1, emb2, sim_feats, labels in tqdm(train_loader, desc=f"Epoch {epoch+1}"):
-            # Move data to device
+        for batch in tqdm(train_loader, desc=f"Epoch {epoch+1}"):
+            if use_sim_features:
+                emb1, emb2, sim_feats, labels = batch
+                sim_feats = sim_feats.to(device)
+            else:
+                emb1, emb2, labels = batch
+                sim_feats = None
             emb1 = emb1.to(device)
             emb2 = emb2.to(device)
-            # If sim_feats is None, create a dummy tensor of appropriate shape
-            sim_feats = sim_feats.to(device) if sim_feats is not None else None
             labels = labels.to(device)
             
             optimizer.zero_grad()
@@ -97,10 +97,11 @@ def train_siamese(df_train, df_val, df_test, device="cpu", epochs=10, batch_size
             optimizer.step()
             total_loss += loss.item()
 
+
         print(f"Epoch {epoch+1} Loss: {total_loss:.4f}")
 
         # Evaluate on validation set
-        val_acc, val_f1 = evaluate(model, val_loader, device, dataset_name="Validation")
+        val_acc, val_f1 = evaluate(model, val_loader, device, use_sim_features, dataset_name="Validation")
         print(f"Epoch {epoch+1} Validation Accuracy: {val_acc:.4f}, F1 Score: {val_f1:.4f}")
 
         # Early stopping: if F1 improved, save the model and reset the counter
@@ -123,20 +124,29 @@ def train_siamese(df_train, df_val, df_test, device="cpu", epochs=10, batch_size
         print("No improvement observed during training; using last epoch model.")
 
     # Evaluate on test set
-    test_acc, test_f1 = evaluate(model, test_loader, device, dataset_name="Test")
+    test_acc, test_f1 = evaluate(model, test_loader, device, use_sim_features, dataset_name="Test")
     print(f"Test Accuracy: {test_acc:.4f}, F1 Score: {test_f1:.4f}")
 
-def evaluate(model, dataloader, device, dataset_name="Validation"):
+def evaluate(model, dataloader, device, use_sim_features, dataset_name="Validation"):
     model.eval()
     preds, trues = [], []
     with torch.no_grad():
-        for emb1, emb2, sim_feats, labels in dataloader:
+        for batch in dataloader:
+            if use_sim_features:
+                emb1, emb2, sim_feats, labels = batch
+                sim_feats = sim_feats.to(device)
+            else:
+                emb1, emb2, labels = batch
+                sim_feats = None
+        
             emb1 = emb1.to(device)
             emb2 = emb2.to(device)
-            sim_feats = sim_feats.to(device) if sim_feats is not None else None
+            labels = labels.to(device)
+        
             outputs = model(emb1, emb2, sim_feats)
             preds += outputs.squeeze().cpu().numpy().tolist()
             trues += labels.squeeze().cpu().numpy().tolist()
+
 
     # Convert continuous outputs to binary predictions (threshold=0.5)
     preds_binary = [1 if p > 0.5 else 0 for p in preds]
