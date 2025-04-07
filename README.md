@@ -3,6 +3,7 @@ Repository for our 774 project for question matching
 
 # Install requirements
 pip install py_stringmatching numpy pandas scikit-learn openai
+pip install -U sentence-transformers
 
 *** You will also need to install spacy for lemmatization and stopword removal ***
 conda install -c conda-forge spacy
@@ -12,6 +13,9 @@ pip install -U spacy
 
 *** Download English model for spacy ***
 python -m spacy download en_core_web_sm
+
+*** Install PyTorch based on your system and package manager ***
+https://pytorch.org/get-started/locally/
 
 
 ***DO NOT DO THIS JUST YET *** 
