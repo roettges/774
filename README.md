@@ -3,6 +3,7 @@ Repository for our 774 project for question matching
 
 # Install requirements
 pip install py_stringmatching numpy pandas scikit-learn openai
+
 pip install -U sentence-transformers
 
 *** You will also need to install spacy for lemmatization and stopword removal ***
