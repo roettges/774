@@ -4,16 +4,17 @@ import os
 import helper_funcs as hf
 import py_stringmatching as sm
 import argparse
+import torch
 from gpt4 import gpt4_analysis
 from siamese_model import train_siamese
 from sklearn.model_selection import train_test_split
 
 
 device = "cpu" # change on Mac to "mps" for GPU support 
-# if torch.backends.mps.is_available():
-#     device = "mps"
-# else:
-#     device = "cpu"
+if torch.backends.mps.is_available():
+    device = "mps"
+else:
+    device = "cpu"
 
 # overall goal: use methods like Jaccard, TF-IDF, and rule-based methods to build a feature vector for each pair of questions in the quora dataset, and then use a deep learning model to classify them as duplicates or not.
 # we will compare to a simple approach of weighted scoring system of similarity scores from the different methods.
@@ -45,12 +46,16 @@ def main():
         
     #load data first 
     df = getData()
+    # df = pd.read_csv("data/questions.csv")
     train, val, test = splitData(df)
     # train, val, test = splitData(df, 4000)
     if args.mode == 1:
         print("Running Siamese Network...")
         # TODO: Add Siamese network logic
-        train_df, val_df, test_df = splitData(df)
+        train_sample = train.sample(frac=0.01, random_state=42)
+        val_sample = val.sample(frac=0.01, random_state=42)
+        test_sample = test.sample(frac=0.01, random_state=42)
+
         
         # jac = sm.Jaccard()
         # lev = sm.Levenshtein()
@@ -58,7 +63,7 @@ def main():
         #     d['sim_jaccard'] = [jac.get_raw_score(a.lower().split(), b.lower().split()) for a, b in zip(d['question1'], d['question2'])]
         #     d['sim_levenshtein'] = [lev.get_raw_score(a.lower(), b.lower()) for a, b in zip(d['question1'], d['question2'])]
     
-        train_siamese(train_df, val_df, device=device)
+        train_siamese(train_sample, val_sample, test_sample, device=device, use_sim_features=False)
         
     elif args.mode == 2:
         print("Running GPT4 Analysis...")
