@@ -47,7 +47,7 @@ def main():
     #load data first 
     df = getData()
     # df = pd.read_csv("data/questions.csv")
-    train, val, test = splitData(df)
+    train, test, val = splitData(df, None, True)
     # train, val, test = splitData(df, 4000)
     if args.mode == 1:
         print("Running Siamese Network...")
@@ -67,11 +67,20 @@ def main():
         
     elif args.mode == 2:
         print("Running GPT4 Analysis...")
-        # TODO: added .head() to keep API costs low for now
-        results = gpt4_analysis(df.head())
-        print(results)
-        # TODO: maybe change to pickle instead of csv later
-        hf.saveData(results, "gpt4o_results", "csv")
+        # TODO: combine plk files: https://stackoverflow.com/questions/76618091/how-to-merge-multiple-pickle-files-to-one-in-python
+        
+        results_1 = gpt4_analysis(val.iloc[:2000, :])
+        hf.saveData(results_1, "gpt4o_results_2000")
+        print("first 2000 done")
+
+        results_2 = gpt4_analysis(val.iloc[2000:4000, :])
+        hf.saveData(results_2, "gpt4o_results_4000")
+        print("first 4000 done")
+
+        results_3 = gpt4_analysis(val.iloc[4000:, :])
+        hf.saveData(results_3, "gpt4o_results_end")
+        print("DONE")
+
     elif args.mode == 3:
         print("Running Classical Classifier...")
         # TODO: Add classifier logic
@@ -191,7 +200,22 @@ def getData():
     print(df.head())
     return df
 
-def splitData(df, small_train_size=None):
+def shrinkDataset(df):
+    # check distribution
+    class_distribution = df['is_duplicate'].value_counts()
+    print("Class distribution before sampling:\n", class_distribution)
+
+    # stratified sampling to shrink dataset but maintain proportion
+    # increase test_size to reduce the size of df_reduced
+    df_reduced, _ = train_test_split(df, test_size=0.9, stratify=df['is_duplicate'], random_state=42)
+
+    # check distribution after sampling
+    reduced_class_distribution = df_reduced['is_duplicate'].value_counts()
+    print("\nClass distribution after sampling:\n", reduced_class_distribution)
+    
+    return df_reduced
+
+def splitData(df, small_train_size=None, shrink_dataset=False):
     """
     Split the dataframe into train, validation, and test sets.
     """
@@ -208,13 +232,14 @@ def splitData(df, small_train_size=None):
     # return train_df, val_df, test_df
 
     ############## START OF NEW CODE ##############
-    # print("len(df): ", len(df))
-    # split entire dataset by class
+
+    if shrink_dataset:
+        df = shrinkDataset(df)
     class_0 = df[df['is_duplicate'] == 0]
     class_1 = df[df['is_duplicate'] == 1]
 
     # grab 80% of the rows of the smaller class, or small_train_size if provided
-    min_class_size = small_train_size // 2 if small_train_size is not None else int(min(len(class_0), len(class_1)) * 0.8)
+    min_class_size = small_train_size // 2 if small_train_size is not None else int(min(len(class_0), len(class_1)) * 0.9)
 
     # sample same number from both classes and combine into train df
     class_0_train = class_0.sample(n = min_class_size, random_state = 42)
@@ -228,7 +253,7 @@ def splitData(df, small_train_size=None):
     
     # split remaining data in half for test and val
     test_df, val_df = train_test_split(remaining_df, test_size = 0.5, random_state = 42)
-    # print(len(train_df), len(test_df), len(val_df))
+    print(len(train_df), len(test_df), len(val_df))
 
     # sanity check to ensure no data leakage
     assert len(set(train_df.index).intersection(set(test_df.index))) == 0

@@ -1,4 +1,5 @@
 import os
+import time
 import openai
 import pandas as pd
 
@@ -44,22 +45,48 @@ def openai_api_call(q1, q2):
     return process_api_response(completion.choices[0].message.content)
 
 def gpt4_analysis(df):
+
+    ################## GPT RATE LIMIT ##################
+    rate_limit = 300  # requests per minute
+    time_period = 60  # seconds (1 minute)
+    # Calculate sleep time in seconds per request
+    sleep_time = time_period / rate_limit
+    ####################################################
+
     is_duplicate = []
     confidence_scores = []
     
+    row_count = 0
     for _, row in df.iterrows():
+        
+        if row_count % 200 == 0:
+            print(f"Currently on row {row_count} at {time.strftime('%H:%M:%S')}")
+        row_count += 1
+        
         q1 = row['question1']
         q2 = row['question2']
         
-        result = openai_api_call(q1, q2)
-        
-        if result:
-            duplicate, confidence = result
-            is_duplicate.append(duplicate)
-            confidence_scores.append(confidence)
-        else:
+        try:
+            result = openai_api_call(q1, q2)
+            
+            if result:
+                duplicate, confidence = result
+                is_duplicate.append(duplicate)
+                confidence_scores.append(confidence)
+            else:
+                # if gpt response is badly formatted
+                is_duplicate.append(None)
+                confidence_scores.append(None)
+                
+        except Exception as e:
+            # if api call fails
+            print(f"Error on row {row_count}: {e}")
             is_duplicate.append(None)
             confidence_scores.append(None)
+        
+        ################## GPT RATE LIMIT ##################
+        time.sleep(sleep_time)
+        ####################################################
     
     df['gpt_is_duplicate'] = is_duplicate
     df['gpt_confidence_score'] = confidence_scores
