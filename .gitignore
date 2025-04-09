@@ -14,6 +14,10 @@ data/*
 !data/.gitkeep
 output/*
 
+# I am updating this to not send any csv files to git, so only pickle files are sent
+*.csv
+*.CSV
+
 
 # # C extensions
 # *.so

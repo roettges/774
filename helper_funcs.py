@@ -38,7 +38,158 @@ def evaluateM(filename, gt_column, pred_column, threshold=None):
     """
     # Load the data from pickle
     df = loadData(filename, format='pickle')
-    raise NotImplementedError("Model evaluation not implemented. Please implement the evaluateM function.")
+    #verify that the columns exist
+    if gt_column not in df.columns:
+        raise ValueError(f"Ground truth column '{gt_column}' not found in the data.")
+    if pred_column not in df.columns:
+        raise ValueError(f"Prediction column '{pred_column}' not found in the data.")
+    # Check if the ground truth column is binary
+    if df[gt_column].nunique() != 2:
+        raise ValueError(f"Ground truth column '{gt_column}' is not binary.")
+    # Check if the prediction column is binary
+    if df[pred_column].nunique() != 2:
+        #if not binary, check if threshold is None
+        if threshold is None:
+            raise ValueError(f"Prediction column '{pred_column}' is not binary and no threshold was provided.")
+        #if threshold is provided, add a prediction column using the threshold
+        df['pred_binary'] = np.where(df[pred_column] >= threshold, 1, 0)
+    else:
+        #if the prediction column is binary, use it as is
+        df['pred_binary'] = df[pred_column]
+        
+    # Calculate accuracy
+    accuracy = np.mean(df[gt_column] == df['pred_binary'])
+    print(f"Accuracy: {accuracy:.4f}")
+    # Calculate precision
+    true_positives = np.sum((df[gt_column] == 1) & (df['pred_binary'] == 1))
+    false_positives = np.sum((df[gt_column] == 0) & (df['pred_binary'] == 1))
+    false_negatives = np.sum((df[gt_column] == 1) & (df['pred_binary'] == 0))
+    precision = true_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 0
+    print(f"Precision: {precision:.4f}")
+    # Calculate recall
+    recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
+    print(f"Recall: {recall:.4f}")
+    
+    # Calculate F1-Score
+    f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+    print(f"F1-Score: {f1_score:.4f}")
+    
+    # Calculate ROC AUC score
+    from sklearn.metrics import roc_auc_score
+    roc_auc = roc_auc_score(df[gt_column], df[pred_column])
+    print(f"ROC AUC Score: {roc_auc:.4f}")
+    
+    # Calculate confusion matrix
+    from sklearn.metrics import confusion_matrix
+    cm = confusion_matrix(df[gt_column], df['pred_binary'])
+    print(f"Confusion Matrix:\n{cm}")
+    
+    #save the evaluation results to a file
+    evaluation_results = {
+        'accuracy': accuracy,
+        'precision': precision,
+        'recall': recall,
+        'f1_score': f1_score,
+        'roc_auc': roc_auc,
+        'confusion_matrix': cm
+    }
+    # Save the evaluation results to a file
+    results_folder = os.path.join(os.getcwd(), 'evaluation_results')
+    #generate a subdirectory for the evaluation results based on the filename and its threshold if provided
+    if threshold is not None:
+        results_folder = os.path.join(results_folder, f"{filename}_{threshold}")
+    else:
+        results_folder = os.path.join(results_folder, filename)
+    
+    # check if the results folder exists, if not create it
+    if not os.path.exists(results_folder):
+        os.makedirs(results_folder)
+    # save the evaluation results to a file
+    results_file = os.path.join(results_folder, 'evaluation_results.txt')
+    with open(results_file, 'w') as f:
+        f.write(f"Accuracy: {accuracy:.4f}\n")
+        f.write(f"Precision: {precision:.4f}\n")
+        f.write(f"Recall: {recall:.4f}\n")
+        f.write(f"F1-Score: {f1_score:.4f}\n")
+        f.write(f"ROC AUC Score: {roc_auc:.4f}\n")
+        f.write(f"Confusion Matrix:\n{cm}\n")
+    print(f"Evaluation results saved to {results_file}")
+    
+    #generate data visualizations
+    # Plot the confusion matrix
+    import matplotlib.pyplot as plt
+    # The code is importing the `seaborn` library in Python using the `import` statement. Seaborn is a
+    # data visualization library based on matplotlib that provides a high-level interface for creating
+    # attractive and informative statistical graphics.
+    import seaborn as sns
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', cbar=False)
+    plt.title('Confusion Matrix')
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.xticks(ticks=[0.5, 1.5], labels=['Not Duplicate', 'Duplicate'])
+    plt.yticks(ticks=[0.5, 1.5], labels=['Not Duplicate', 'Duplicate'], rotation=0)
+    plt.savefig(os.path.join(results_folder, 'confusion_matrix.png'))
+    # Plot ROC curve
+    from sklearn.metrics import roc_curve
+    fpr, tpr, thresholds = roc_curve(df[gt_column], df[pred_column])
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, label='ROC Curve')
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curve')
+    plt.legend()
+    plt.savefig(os.path.join(results_folder, 'roc_curve.png'))
+    # Plot precision-recall curve
+    from sklearn.metrics import precision_recall_curve
+    precision, recall, thresholds = precision_recall_curve(df[gt_column], df[pred_column])
+    plt.figure(figsize=(8, 6))
+    plt.plot(recall, precision, label='Precision-Recall Curve')
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall Curve')
+    plt.legend()
+    plt.savefig(os.path.join(results_folder, 'precision_recall_curve.png'))
+    
+    # generate false positive and false negative subfolders
+    false_positive_folder = os.path.join(results_folder, 'false_positive')
+    false_negative_folder = os.path.join(results_folder, 'false_negative')
+    # check if the false positive folder exists, if not create it
+    if not os.path.exists(false_positive_folder):
+        os.makedirs(false_positive_folder)
+    # check if the false negative folder exists, if not create it
+    if not os.path.exists(false_negative_folder):
+        os.makedirs(false_negative_folder)
+    # save the false positive and false negative examples to a file
+    false_positive_examples = df[(df[gt_column] == 0) & (df['pred_binary'] == 1)]
+    false_negative_examples = df[(df[gt_column] == 1) & (df['pred_binary'] == 0)]
+    # save the false positive examples
+    #prompt the user to save as a pickle or csv
+    save_format = input("Do you want to save the false positive & false negative examples as a pickle or csv or both? (p/c/b): ")
+    if save_format == 'p':
+        false_positive_examples.to_pickle(os.path.join(false_positive_folder, 'false_positive_examples.pkl'))
+        print(f"False positive examples saved to {os.path.join(false_positive_folder, 'false_positive_examples.pkl')}")
+        false_negative_examples.to_pickle(os.path.join(false_negative_folder, 'false_negative_examples.pkl'))
+        print(f"False negative examples saved to {os.path.join(false_negative_folder, 'false_negative_examples.pkl')}")
+    elif save_format == 'c':
+        false_positive_examples.to_csv(os.path.join(false_positive_folder, 'false_positive_examples.csv'), index=False)
+        print(f"False positive examples saved to {os.path.join(false_positive_folder, 'false_positive_examples.csv')}")
+        false_negative_examples.to_csv(os.path.join(false_negative_folder, 'false_negative_examples.csv'), index=False)
+        print(f"False negative examples saved to {os.path.join(false_negative_folder, 'false_negative_examples.csv')}")
+    elif save_format == 'b':
+        false_positive_examples.to_pickle(os.path.join(false_positive_folder, 'false_positive_examples.pkl'))
+        print(f"False positive examples saved to {os.path.join(false_positive_folder, 'false_positive_examples.pkl')}")
+        false_negative_examples.to_pickle(os.path.join(false_negative_folder, 'false_negative_examples.pkl'))
+        print(f"False negative examples saved to {os.path.join(false_negative_folder, 'false_negative_examples.pkl')}")
+        false_positive_examples.to_csv(os.path.join(false_positive_folder, 'false_positive_examples.csv'), index=False)
+        print(f"False positive examples saved to {os.path.join(false_positive_folder, 'false_positive_examples.csv')}")
+        false_negative_examples.to_csv(os.path.join(false_negative_folder, 'false_negative_examples.csv'), index=False)
+        print(f"False negative examples saved to {os.path.join(false_negative_folder, 'false_negative_examples.csv')}")
+    else:
+        print("Invalid input. Not saving false positive & false negative examples.")
+    return evaluation_results, false_positive_examples, false_negative_examples
+
 @timer
 def saveJaccard(data, parse_method, remove_stopwords):
     """
@@ -176,29 +327,6 @@ def loadData(filename, format='pickle'):
     print(f"Loaded data from {full_path}")
     return df
 
-# def savecsv(d, filename):
-#      #check if the file already exists, if so prompt the user to overwrite or not
-#     if os.path.exists(filename):
-#         overwrite = input(f"{filename} already exists. Do you want to overwrite it? (y/n): ")
-#         if overwrite.lower() != 'y':
-#             #prompt the user to enter a new filename
-#             new_filename = input("Please enter a new filename (without extension): ")
-#             filename = os.path.join(output_directory, f"{new_filename}.csv")
-#             d.to_csv(filename, index=False)
-#         #otherwise overwrite the file
-#         else:
-#             print(f"Overwriting {filename}...")
-#             d.to_csv(filename, index=False)
-#     #check if the output directory exists
-#     else:
-#         # create the output directory if it doesn't exist
-#         if not os.path.exists(output_directory):
-#             os.makedirs(output_directory)
-#         # save the cleaned data to a file
-#         print(f"Saving the results to {filename}...")
-#         # save the cleaned data to a file`
-#         d.to_csv(filename, index=False)
-#     return
 @timer
 def clean_data(data, word_removal):
     """

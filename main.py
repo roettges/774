@@ -25,13 +25,14 @@ def main():
     parser.add_argument(
         "--mode",
         type=int,
-        choices=[1, 2, 3, 4, 5],
+        choices=[1, 2, 3, 4, 5, 6],
         help="""Select operation mode:
         1: Siamese Network
         2: GPT4 Analysis
         3: Classical Classifier
         4: Save Similarity Scores
-        5: Miscellaneous Tests"""
+        5: Miscellaneous Tests
+        6. Evaluate a Model""",
     )
     args = parser.parse_args()
     
@@ -42,7 +43,8 @@ def main():
         print("3: Classical Classifier")
         print("4: Save Similarity Scores")
         print("5: Miscellaneous Tests")
-        args.mode = int(input("\nEnter your choice (1-5): "))
+        print("6: Evaluate a Model")
+        args.mode = int(input("\nEnter your choice (1-6): "))
         
     #load data first 
     df = getData()
@@ -153,8 +155,7 @@ def main():
         q2 = df.iloc[0]['question2']
         print(f"Example question 1: {q1}")
         print(f"Example question 2: {q2}")
-        #TODO: clean the data, lowercase, do we want to remove special characters, do we want to remove stop words?
-        # if we want to remove stop words we likely need to use a library like nltk
+    
         # for now just going to lowercase the data
         q1 = q1.lower()
         q2 = q2.lower()
@@ -183,7 +184,33 @@ def main():
         print(f"Jaccard similarity (3-gram): {test_jac_3gram}")
         print(f"Jaccard similarity (whitespace): {test_jac_ws}")
         print(f"Levenshtein similarity: {test_lev}")
-    
+    elif args.mode == 6:
+        # prompt user for file name
+        print("Please enter the file name of the model to evaluate:")
+        fname = input("\nEnter your choice (file name): ")
+        print("Enter the column name of the ground truth labels, the default value is is_duplicate:")
+        col_name = input("\nEnter your choice (column name): ")
+        if col_name == "":
+            col_name = "is_duplicate"
+        print("Enter the column name of the predited labels, or if you only have a similarity score, enter the column name of the similarity score:")
+        pred_col_name = input("\nEnter your choice (column name): ")
+        if pred_col_name == "":
+            pred_col_name = "similarity_score"
+        print("If you specified a column for a similarity score, please enter the threshold for the similarity score to be considered a duplicate, otherwise you can leave this blank:")
+        threshold = input("\nEnter your choice (threshold): ")
+        if threshold == "":
+            threshold = None
+        else:
+            #make sure threshold is a float
+            try:
+                threshold = float(threshold)
+            except ValueError:
+                print("Invalid threshold value. Please enter a number, try again.")
+                # quit the program
+                return
+        # evaluate the model
+        eval_results,fp,fn = hf.evaluateM(fname, col_name, pred_col_name, threshold)
+        raise NotImplementedError("Model evaluation not implemented. Please implement the evaluateModel function.")
     
 def getData():
     """
