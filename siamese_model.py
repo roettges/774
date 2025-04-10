@@ -17,6 +17,7 @@ import sys
 import os
 from datetime import datetime
 import atexit
+import pandas as pd
 
 log_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
@@ -30,19 +31,29 @@ class SiameseDataset(Dataset):
         return len(self.df)
 
     def __getitem__(self, idx):
-        row = self.df.iloc[idx]
-        q1 = row['question1']
-        q2 = row['question2']
-        label = torch.tensor([row['is_duplicate']], dtype=torch.float32)
+        try:
+            row = self.df.iloc[idx]
+            q1 = str(row['question1']) if pd.notnull(row['question1']) else ""
+            q2 = str(row['question2']) if pd.notnull(row['question2']) else ""
+            label = torch.tensor([row['is_duplicate']], dtype=torch.float32)
+    
+            # Encode questions
+            emb1 = self.encoder.encode(q1, convert_to_tensor=True)
+            emb2 = self.encoder.encode(q2, convert_to_tensor=True)
+    
+            if self.use_sim_features:
+                cos_sim = self.encoder.similarity_pairwise(emb1.unsqueeze(0), emb2.unsqueeze(0))[0]
+                sim_feats = cos_sim.unsqueeze(0).unsqueeze(0)  # Shape: (1, 1)
+                return emb1, emb2, sim_feats, label
+            else:
+                return emb1, emb2, label
 
-        emb1 = self.encoder.encode(q1, convert_to_tensor=True)
-        emb2 = self.encoder.encode(q2, convert_to_tensor=True)
+        except Exception as e:
+            print(f"[Data Error] Skipping index {idx}: {e}")
+            # Try the next index, or loop to 0 if at end
+            next_idx = (idx + 1) % len(self.df)
+            return self.__getitem__(next_idx)
 
-        if self.use_sim_features:
-            sim_feats = None
-            return emb1, emb2, sim_feats, label
-        else:
-            return emb1, emb2, label  # No sim_feats
 
 class SiameseNet(nn.Module):
     def __init__(self, embedding_dim=384, sim_feature_dim=0, hidden_dim=256):
