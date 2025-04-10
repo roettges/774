@@ -38,8 +38,8 @@ class SiameseDataset(Dataset):
         emb1 = self.encoder.encode(q1, convert_to_tensor=True)
         emb2 = self.encoder.encode(q2, convert_to_tensor=True)
 
-        if self.use_sim_features and 'sim_jaccard' in self.df.columns:
-            sim_feats = torch.tensor(row[['sim_jaccard', 'sim_levenshtein']], dtype=torch.float32)
+        if self.use_sim_features:
+            sim_feats = None
             return emb1, emb2, sim_feats, label
         else:
             return emb1, emb2, label  # No sim_feats

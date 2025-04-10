@@ -85,8 +85,8 @@ def main():
         es_sample = early_stop.sample(frac=0.01, random_state=42)
         val_sample = val.sample(frac=0.01, random_state=42)
     
-        train_siamese(train_sample, es_sample, val_sample, device=device, use_sim_features=False)
-        # train_siamese(train, early_stop, fixed_small_val, device=device, use_sim_features=False)
+        # train_siamese(train_sample, es_sample, val_sample, device=device, use_sim_features=False)
+        train_siamese(train, early_stop, fixed_small_val, device=device, use_sim_features=False)
         
     # elif args.mode == 2:
     #     print("Running GPT4 Analysis...")
