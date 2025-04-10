@@ -11,8 +11,14 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from sentence_transformers import SentenceTransformer
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score, confusion_matrix
 from tqdm import tqdm
+import sys
+import os
+from datetime import datetime
+import atexit
+
+log_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 class SiameseDataset(Dataset):
     def __init__(self, df, encoder, use_sim_features=True):
@@ -57,9 +63,108 @@ class SiameseNet(nn.Module):
             concat = torch.cat((emb1, emb2, diff), dim=1)
         return self.fc(concat)
 
-def train_siamese(df_train, df_val, df_test, device="cpu", epochs=10, batch_size=32, 
-                  use_sim_features=True, early_stopping_patience=3):
+def evaluate(model, dataloader, device, use_sim_features, dataset_name="Validation", test_mode=False):
+    """
+    Evaluates the model and computes metrics.
+    If test_mode is False (default), computes accuracy and F1 score.
+    If test_mode is True, computes additional metrics: precision, recall, ROC AUC, and confusion matrix.
+    """
+    model.eval()
+    preds, trues = [], []
+    with torch.no_grad():
+        for batch in dataloader:
+            if use_sim_features:
+                emb1, emb2, sim_feats, labels = batch
+                sim_feats = sim_feats.to(device)
+            else:
+                emb1, emb2, labels = batch
+                sim_feats = None
+
+            emb1 = emb1.to(device)
+            emb2 = emb2.to(device)
+            labels = labels.to(device)
+
+            outputs = model(emb1, emb2, sim_feats)
+            batch_preds = outputs.squeeze().cpu().numpy().tolist()
+            preds += batch_preds
+            trues += labels.squeeze().cpu().numpy().tolist()
+
+    # Convert predictions to binary using threshold of 0.5
+    preds_binary = [1 if p > 0.5 else 0 for p in preds]
+    
+    # Common metrics
+    accuracy = accuracy_score(trues, preds_binary)
+    f1 = f1_score(trues, preds_binary)
+    print(f"{dataset_name} Accuracy: {accuracy:.4f}, F1 Score: {f1:.4f}")
+    
+    # If test_mode is True, compute additional metrics
+    if test_mode:
+        precision = precision_score(trues, preds_binary)
+        recall = recall_score(trues, preds_binary)
+        try:
+            roc_auc = roc_auc_score(trues, preds)
+        except ValueError:
+            roc_auc = float('nan')
+        cm = confusion_matrix(trues, preds_binary)
+        print(f"{dataset_name} Precision: {precision:.4f}, Recall: {recall:.4f}")
+        print(f"{dataset_name} ROC AUC: {roc_auc:.4f}")
+        print(f"{dataset_name} Confusion Matrix:\n{cm}")
+        metrics = {
+            'accuracy': accuracy,
+            'precision': precision,
+            'recall': recall,
+            'f1_score': f1,
+            'roc_auc': roc_auc,
+            'confusion_matrix': cm
+        }
+    else:
+        metrics = {
+            'accuracy': accuracy,
+            'f1_score': f1
+        }
+        
+    return metrics
+
+def save_predictions(model, test_set, device, use_sim_features, output_path, batch_size=32):
+    """
+    Evaluates the model on the test set, appends two new columns to the original DataFrame:
+      - 'raw_prediction': continuous model output
+      - 'predicted': binary prediction based on thresholding at 0.5
+    Then saves the DataFrame to a CSV.
+    """
+    model.eval()
+    raw_predictions = []
+    binary_predictions = []
+    test_loader = DataLoader(test_set, batch_size=batch_size)
+    
+    with torch.no_grad():
+        for batch in test_loader:
+            if use_sim_features:
+                emb1, emb2, sim_feats, _ = batch
+                sim_feats = sim_feats.to(device)
+            else:
+                emb1, emb2, _ = batch
+                sim_feats = None
+
+            emb1 = emb1.to(device)
+            emb2 = emb2.to(device)
+            outputs = model(emb1, emb2, sim_feats)
+            
+            batch_raw = outputs.squeeze().cpu().numpy().tolist()
+            batch_binary = [1 if p > 0.5 else 0 for p in batch_raw]
+            
+            raw_predictions.extend(batch_raw)
+            binary_predictions.extend(batch_binary)
+    
+    test_set.df['raw_prediction'] = raw_predictions
+    test_set.df['predicted'] = binary_predictions
+    test_set.df.to_csv(output_path, index=False)
+    print(f"Predictions saved to {output_path}")
+
+def train_siamese(df_train, df_val, df_test, device="cpu", epochs=100, batch_size=32, 
+                  use_sim_features=True, early_stopping_patience=5):
     encoder = SentenceTransformer('all-MiniLM-L6-v2')
+    encoder = encoder.to(device)
     train_set = SiameseDataset(df_train, encoder, use_sim_features=use_sim_features)
     val_set = SiameseDataset(df_val, encoder, use_sim_features=use_sim_features)
     test_set = SiameseDataset(df_test, encoder, use_sim_features=use_sim_features)
@@ -86,6 +191,7 @@ def train_siamese(df_train, df_val, df_test, device="cpu", epochs=10, batch_size
             else:
                 emb1, emb2, labels = batch
                 sim_feats = None
+            
             emb1 = emb1.to(device)
             emb2 = emb2.to(device)
             labels = labels.to(device)
@@ -97,16 +203,15 @@ def train_siamese(df_train, df_val, df_test, device="cpu", epochs=10, batch_size
             optimizer.step()
             total_loss += loss.item()
 
-
         print(f"Epoch {epoch+1} Loss: {total_loss:.4f}")
 
-        # Evaluate on validation set
-        val_acc, val_f1 = evaluate(model, val_loader, device, use_sim_features, dataset_name="Validation")
-        print(f"Epoch {epoch+1} Validation Accuracy: {val_acc:.4f}, F1 Score: {val_f1:.4f}")
+        # Evaluate on validation set (test_mode=False)
+        val_metrics = evaluate(model, val_loader, device, use_sim_features, dataset_name="Validation", test_mode=False)
+        print(f"Epoch {epoch+1} Validation Metrics: {val_metrics}")
 
         # Early stopping: if F1 improved, save the model and reset the counter
-        if val_f1 > best_f1:
-            best_f1 = val_f1
+        if val_metrics['f1_score'] > best_f1:
+            best_f1 = val_metrics['f1_score']
             epochs_no_improve = 0
             best_model_state = model.state_dict()
             print("Validation F1 improved. Saving best model...")
@@ -123,34 +228,14 @@ def train_siamese(df_train, df_val, df_test, device="cpu", epochs=10, batch_size
     else:
         print("No improvement observed during training; using last epoch model.")
 
-    # Evaluate on test set
-    test_acc, test_f1 = evaluate(model, test_loader, device, use_sim_features, dataset_name="Test")
-    print(f"Test Accuracy: {test_acc:.4f}, F1 Score: {test_f1:.4f}")
+    # Evaluate and print detailed metrics on test set (test_mode=True)
+    test_metrics = evaluate(model, test_loader, device, use_sim_features, dataset_name="Test", test_mode=True)
 
-def evaluate(model, dataloader, device, use_sim_features, dataset_name="Validation"):
-    model.eval()
-    preds, trues = [], []
-    with torch.no_grad():
-        for batch in dataloader:
-            if use_sim_features:
-                emb1, emb2, sim_feats, labels = batch
-                sim_feats = sim_feats.to(device)
-            else:
-                emb1, emb2, labels = batch
-                sim_feats = None
-        
-            emb1 = emb1.to(device)
-            emb2 = emb2.to(device)
-            labels = labels.to(device)
-        
-            outputs = model(emb1, emb2, sim_feats)
-            preds += outputs.squeeze().cpu().numpy().tolist()
-            trues += labels.squeeze().cpu().numpy().tolist()
+    # Save predictions to CSV for the test set
+    output_csv = f"predictions_{log_time}.csv"
+    save_predictions(model, test_set, device, use_sim_features, output_csv)
+    
+    return test_metrics
 
-
-    # Convert continuous outputs to binary predictions (threshold=0.5)
-    preds_binary = [1 if p > 0.5 else 0 for p in preds]
-    acc = accuracy_score(trues, preds_binary)
-    f1 = f1_score(trues, preds_binary)
-    print(f"{dataset_name} Accuracy: {acc:.4f}, F1 Score: {f1:.4f}")
-    return acc, f1
+# Example usage (assuming df_train, df_val, and df_test are defined):
+# test_metrics = train_siamese(df_train, df_val, df_test, device="cuda", epochs=10, batch_size=32)
