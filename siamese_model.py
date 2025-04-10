@@ -236,8 +236,15 @@ def train_siamese(df_train, df_val, df_test, device="cpu", epochs=100, batch_siz
     # Load best model state before testing
     if best_model_state is not None:
         model.load_state_dict(best_model_state)
+        print("Best model loaded for final evaluation.")
     else:
         print("No improvement observed during training; using last epoch model.")
+
+    # Save final model
+    os.makedirs("models", exist_ok=True)
+    model_path = f"models/siamese_model_{log_time}.pt"
+    torch.save(model.state_dict(), model_path)
+    print(f"Final model saved to {model_path}")
 
     # Evaluate and print detailed metrics on test set (test_mode=True)
     test_metrics = evaluate(model, test_loader, device, use_sim_features, dataset_name="Test", test_mode=True)
@@ -247,6 +254,7 @@ def train_siamese(df_train, df_val, df_test, device="cpu", epochs=100, batch_siz
     save_predictions(model, test_set, device, use_sim_features, output_csv)
     
     return test_metrics
+
 
 # Example usage (assuming df_train, df_val, and df_test are defined):
 # test_metrics = train_siamese(df_train, df_val, df_test, device="cuda", epochs=10, batch_size=32)
