@@ -136,7 +136,7 @@ def evaluate(model, dataloader, device, use_sim_features, dataset_name="Validati
         
     return metrics
 
-def save_predictions(model, test_set, device, use_sim_features, output_path, batch_size=192):
+def save_predictions(model, test_set, device, use_sim_features, output_path, batch_size=64):
     """
     Evaluates the model on the test set, appends two new columns to the original DataFrame:
       - 'raw_prediction': continuous model output
@@ -172,7 +172,7 @@ def save_predictions(model, test_set, device, use_sim_features, output_path, bat
     test_set.df.to_csv(output_path, index=False)
     print(f"Predictions saved to {output_path}")
 
-def train_siamese(df_train, df_val, df_test, device="cpu", epochs=100, batch_size=192, 
+def train_siamese(df_train, df_val, df_test, device="cpu", epochs=100, batch_size=64, 
                   use_sim_features=True, early_stopping_patience=5):
     encoder = SentenceTransformer('all-MiniLM-L6-v2')
     encoder = encoder.to(device)
@@ -185,12 +185,6 @@ def train_siamese(df_train, df_val, df_test, device="cpu", epochs=100, batch_siz
     test_loader = DataLoader(test_set, batch_size=batch_size)
 
     model = SiameseNet(sim_feature_dim=1 if use_sim_features else 0).to(device)
-    
-    # Wrap the model with DataParallel if multiple GPUs are available.
-    if torch.cuda.device_count() > 1:
-        print(f"Using {torch.cuda.device_count()} GPUs for training.")
-        model = nn.DataParallel(model, device_ids=list(range(torch.cuda.device_count())))
-
     criterion = nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
