@@ -172,7 +172,7 @@ def save_predictions(model, test_set, device, use_sim_features, output_path, bat
     test_set.df.to_csv(output_path, index=False)
     print(f"Predictions saved to {output_path}")
 
-def train_siamese(df_train, df_val, df_test, device="cpu", epochs=100, batch_size=64, 
+def train_siamese(df_train, df_val, df_test, device="cpu", epochs=5, batch_size=64, 
                   use_sim_features=True, early_stopping_patience=5):
     encoder = SentenceTransformer('all-MiniLM-L6-v2')
     encoder = encoder.to(device)
