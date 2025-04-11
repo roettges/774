@@ -172,7 +172,7 @@ def save_predictions(model, test_set, device, use_sim_features, output_path, bat
     test_set.df.to_csv(output_path, index=False)
     print(f"Predictions saved to {output_path}")
 
-def train_siamese(df_train, df_val, df_test, device="cpu", epochs=5, batch_size=64, 
+def train_siamese(df_train, df_val, df_test, device="cpu", epochs=50, batch_size=64, 
                   use_sim_features=True, early_stopping_patience=5):
     encoder = SentenceTransformer('all-MiniLM-L6-v2')
     encoder = encoder.to(device)
@@ -221,7 +221,7 @@ def train_siamese(df_train, df_val, df_test, device="cpu", epochs=5, batch_size=
         print(f"Epoch {epoch+1} Validation Metrics: {val_metrics}")
 
         # Early stopping: if F1 improved, save the model and reset the counter
-        if val_metrics['f1_score'] > best_f1:
+        if val_metrics['f1_score'] > best_f1 + 0.005:
             best_f1 = val_metrics['f1_score']
             epochs_no_improve = 0
             best_model_state = model.state_dict()
