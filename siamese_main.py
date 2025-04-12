@@ -60,20 +60,22 @@ def main():
     df = pd.read_csv("data/questions.csv")
     print(f"Loaded dataframe with {len(df)} rows")
     
-    # Create a fixed, shrunken validation set (small_val) from the full df.
-    # This uses the shrinkDataset and splitData functions below.
-    _, _, fixed_small_val = splitData(df, shrink_dataset=True)
-    print(f"Fixed small validation set size: {len(fixed_small_val)}")
+    # # Create a fixed, shrunken validation set (small_val) from the full df.
+    # # This uses the shrinkDataset and splitData functions below.
+    # _, _, fixed_small_val = splitData(df, shrink_dataset=True)
+    # print(f"Fixed small validation set size: {len(fixed_small_val)}")
     
-    # Remove the fixed small_val rows from df (using the id column, assumed to be the first column)
-    remaining_df = df[~df.iloc[:, 0].isin(fixed_small_val.iloc[:, 0])]
+    # # Remove the fixed small_val rows from df (using the id column, assumed to be the first column)
+    # remaining_df = df[~df.iloc[:, 0].isin(fixed_small_val.iloc[:, 0])]
     
-    # Resample training and testing sets from the remaining data
-    train, test, val = splitData(remaining_df)
-    print(f"Train set size: {len(train)}")
-    print(f"Test set size: {len(test)}")
-    val = pd.concat([val, fixed_small_val]).drop_duplicates()
-    print(f"Validation set size: {len(val)}")
+    # # Resample training and testing sets from the remaining data
+    # train, test, val = splitData(remaining_df)
+    # print(f"Train set size: {len(train)}")
+    # print(f"Test set size: {len(test)}")
+    # val = pd.concat([val, fixed_small_val]).drop_duplicates()
+    # print(f"Validation set size: {len(val)}")
+    
+    train, test, val = splitData(df)
     
     if args.mode == 1:
         print("Running Siamese Network...")
@@ -86,7 +88,7 @@ def main():
         val_sample = val.sample(frac=0.01, random_state=42)
     
         # train_siamese(train_sample, es_sample, val_sample, device=device, use_sim_features=True)
-        train_siamese(train, early_stop, fixed_small_val, device=device, use_sim_features=False)
+        train_siamese(train, early_stop, val, device=device, use_sim_features=False)
         
     # elif args.mode == 2:
     #     print("Running GPT4 Analysis...")
@@ -253,10 +255,11 @@ def splitData(df, small_train_size=None, shrink_dataset=False):
     class_1 = df[df['is_duplicate'] == 1]
 
     # grab 80% of the rows of the smaller class, or small_train_size if provided
-    if shrink_dataset:
-        min_class_size = small_train_size // 2 if small_train_size is not None else int(min(len(class_0), len(class_1)) * 0.9)
-    else:
-        min_class_size = 134375
+    # if shrink_dataset:
+    #     min_class_size = small_train_size // 2 if small_train_size is not None else int(min(len(class_0), len(class_1)) * 0.9)
+    # else:
+    #     min_class_size = 134375
+    min_class_size = small_train_size // 2 if small_train_size is not None else int(min(len(class_0), len(class_1)) * 0.9)
 
     # sample same number from both classes and combine into train df
     class_0_train = class_0.sample(n = min_class_size, random_state = 42)
@@ -268,11 +271,12 @@ def splitData(df, small_train_size=None, shrink_dataset=False):
     class_1_remaining = class_1.drop(class_1_train.index)
     remaining_df = pd.concat([class_0_remaining, class_1_remaining])
     
-    # split remaining data in half for test and val
-    if shrink_dataset:
-        test_df, val_df = train_test_split(remaining_df, test_size = 0.5, random_state = 42)
-    else:
-        test_df, val_df = train_test_split(remaining_df, test_size = 0.47368421, random_state = 42)
+    # # split remaining data in half for test and val
+    # if shrink_dataset:
+    #     test_df, val_df = train_test_split(remaining_df, test_size = 0.5, random_state = 42)
+    # else:
+    #     test_df, val_df = train_test_split(remaining_df, test_size = 0.47368421, random_state = 42)
+    test_df, val_df = train_test_split(remaining_df, test_size = 0.5, random_state = 42)
     print(len(train_df), len(test_df), len(val_df))
 
     # sanity check to ensure no data leakage
@@ -320,7 +324,7 @@ if __name__ == "__main__":
     if torch.backends.mps.is_available():
         device = torch.device("mps")
     elif torch.cuda.is_available():
-        device = torch.device("cuda:2")
+        device = torch.device("cuda:1")
     else:
         device = torch.device("cpu")
     
