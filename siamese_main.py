@@ -11,6 +11,7 @@ from sklearn.model_selection import train_test_split
 import sys
 from datetime import datetime
 import atexit
+import preprocessData as pp
 
 
 os.makedirs("logs", exist_ok=True)
@@ -58,6 +59,9 @@ def main():
     
     # Continue with the rest of your workflow...
     df = pd.read_csv("data/questions.csv")
+    print("Preprocessing data...")
+    #preprocess the data
+    df = pp.preprocess(df)
     print(f"Loaded dataframe with {len(df)} rows")
     
     # # Create a fixed, shrunken validation set (small_val) from the full df.
