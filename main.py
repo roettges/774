@@ -8,6 +8,7 @@ import torch
 from gpt4 import gpt4_analysis
 from siamese_model import train_siamese
 from sklearn.model_selection import train_test_split
+import preprocessData as preprocess
 
 
 device = "cpu" # change on Mac to "mps" for GPU support 
@@ -48,6 +49,8 @@ def main():
         
     #load data first 
     df = getData()
+    # preprocess the data
+    df = preprocess.preprocessing(df)
     # df = pd.read_csv("data/questions.csv")
     train, test, val = splitData(df, None, True)
     # train, val, test = splitData(df, 4000)
@@ -214,7 +217,7 @@ def main():
     
 def getData():
     """
-    Load the quora question pairs dataset from data.
+    Load the PREPROCESSED quora question pairs dataset from data.
     """
     path = os.path.join(os.path.dirname(__file__), 'data', 'questions.csv')
     if not os.path.exists(path):
@@ -296,17 +299,6 @@ def splitData(df, small_train_size=None, shrink_dataset=False):
 # (3) creating a tokenizer object (of the selected type) and using it to tokenize the two given strings x and y
 # (4) creating a similarity measure object (of the selected type) and applying it to the output of the tokenizer to compute a similarity score
 
-
-def buildFeatureVector_for_Deep_Learning(train_set):
-    raise NotImplementedError("Deep Learning feature vector construction not implemented. Please implement the buildFeatureVector_for_Deep_Learning function.")
-
-#model options should be, 1) Jaccard, 2)TFIDF_and_CosineSim, 3) Levenshtein Distance, 4)Weighted Model 1, 5)Weighted Model 2 (no Levenshtein), 6) Deep Learning Model 
-def evaluateModel(model, val_set):
-    """
-    Evaluate the model on the validation set and return the accuracy, precision, recall, F1-Score, and ROC AUC score.
-    """
-    # not implemented error
-    raise NotImplementedError("Model evaluation not implemented. Please implement the evaluateModel function.")
 
 if __name__ == "__main__":
     main()
