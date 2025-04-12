@@ -12,7 +12,7 @@ def upload_and_submit_batch(filename):
 
     print(f"Submitted batch: {filename}")
     batch_input_file_id = batch_input_file.id
-    openai.batches.create(
+    metadata = openai.batches.create(
         input_file_id=batch_input_file_id,
         endpoint="/v1/embeddings",
         completion_window="24h",
@@ -20,3 +20,4 @@ def upload_and_submit_batch(filename):
             "description": "quora question embedding"
         }
     )
+    return metadata
