@@ -15,7 +15,7 @@ import torch
 
 def fine_tune_sbert(csv_path, output_path="models/finetuned_sbert", batch_size=64, epochs=4, warmup_steps=1500, margin=0.5):
     device = torch.device(f"cuda:1" if torch.cuda.is_available() else "cpu")
-    
+    print("device")
     # Load your CSV data.
     df = pd.read_csv(csv_path)
     df_train, _, _ = splitData(df)
@@ -28,6 +28,7 @@ def fine_tune_sbert(csv_path, output_path="models/finetuned_sbert", batch_size=6
             InputExample(texts=[row['question1'], row['question2']],
                          label=float(row['is_duplicate']))
         )
+    print("got training")
     
     # Load the pre-trained SBERT model.
     model_ft = SentenceTransformer('all-MiniLM-L6-v2')
@@ -36,7 +37,7 @@ def fine_tune_sbert(csv_path, output_path="models/finetuned_sbert", batch_size=6
     # Create the SentencesDataset for fine-tuning.
     train_dataset = SentencesDataset(train_examples, model_ft)
     train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size)
-    
+    print("got data")
     # Set up the ContrastiveLoss with a margin.
     # The margin parameter controls how far apart non-matching pairs are pushed.
     train_loss = losses.ContrastiveLoss(model_ft, margin=margin)
