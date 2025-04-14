@@ -13,7 +13,7 @@ import pandas as pd
 from siamese_main import splitData
 import torch
 
-def fine_tune_sbert(csv_path, output_path="models/finetuned_sbert", batch_size=64, epochs=4, warmup_steps=1500, margin=0.5):
+def fine_tune_sbert(csv_path, output_path="models/finetuned_sbert", batch_size=64, epochs=4, warmup_steps=2000, margin=0.5):
     device = torch.device(f"cuda:1" if torch.cuda.is_available() else "cpu")
     print("device")
     # Load your CSV data.
