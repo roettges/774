@@ -174,7 +174,8 @@ def save_predictions(model, test_set, device, use_sim_features, output_path, bat
 
 def train_siamese(df_train, df_val, df_test, device="cpu", epochs=50, batch_size=64, 
                   use_sim_features=True, early_stopping_patience=5):
-    encoder = SentenceTransformer('all-MiniLM-L6-v2')
+    # encoder = SentenceTransformer('all-MiniLM-L6-v2')
+    encoder = SentenceTransformer("models/finetuned_sbert")
     encoder = encoder.to(device)
     train_set = SiameseDataset(df_train, encoder, use_sim_features=use_sim_features)
     val_set = SiameseDataset(df_val, encoder, use_sim_features=use_sim_features)
@@ -254,7 +255,3 @@ def train_siamese(df_train, df_val, df_test, device="cpu", epochs=50, batch_size
     save_predictions(model, test_set, device, use_sim_features, output_csv)
     
     return test_metrics
-
-
-# Example usage (assuming df_train, df_val, and df_test are defined):
-# test_metrics = train_siamese(df_train, df_val, df_test, device="cuda", epochs=10, batch_size=32)

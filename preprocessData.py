@@ -97,3 +97,10 @@ def convert_numbers_outside_math(text):
 # data = preprocessing(data)
 # #print how many rows are in the data
 # print("Number of rows in the data: ", len(data))
+
+if __name__ == "__main__":
+    df = pd.read_csv("data/questions.csv")
+    print("Preprocessing data...")
+    #preprocess the data
+    df = preprocessing(df)
+    print(f"Loaded dataframe with {len(df)} rows")

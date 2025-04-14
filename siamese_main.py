@@ -58,11 +58,7 @@ def main():
     print("Using device:", device)
     
     # Continue with the rest of your workflow...
-    df = pd.read_csv("data/questions.csv")
-    print("Preprocessing data...")
-    #preprocess the data
-    df = pp.preprocessing(df)
-    print(f"Loaded dataframe with {len(df)} rows")
+    df = pd.read_csv("data/preprocessedquestions.csv")
     
     # # Create a fixed, shrunken validation set (small_val) from the full df.
     # # This uses the shrinkDataset and splitData functions below.
