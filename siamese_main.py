@@ -61,7 +61,7 @@ def main():
     df = pd.read_csv("data/questions.csv")
     print("Preprocessing data...")
     #preprocess the data
-    df = pp.preprocess(df)
+    df = pp.preprocessing(df)
     print(f"Loaded dataframe with {len(df)} rows")
     
     # # Create a fixed, shrunken validation set (small_val) from the full df.
@@ -328,7 +328,7 @@ if __name__ == "__main__":
     if torch.backends.mps.is_available():
         device = torch.device("mps")
     elif torch.cuda.is_available():
-        device = torch.device("cuda:1")
+        device = torch.device("cuda:2")
     else:
         device = torch.device("cpu")
     
