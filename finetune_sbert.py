@@ -13,7 +13,7 @@ import pandas as pd
 from siamese_main import splitData
 import torch
 
-def fine_tune_sbert(csv_path, output_path="models/finetuned_sbert", batch_size=64, epochs=4, warmup_steps=500, margin=0.5):
+def fine_tune_sbert(csv_path, output_path="models/finetuned_sbert_online_contrastive", batch_size=64, epochs=4, warmup_steps=500, margin=0.5):
     device = torch.device(f"cuda:1" if torch.cuda.is_available() else "cpu")
     print("device")
     # Load your CSV data.
@@ -40,7 +40,7 @@ def fine_tune_sbert(csv_path, output_path="models/finetuned_sbert", batch_size=6
     print("got data")
     # Set up the ContrastiveLoss with a margin.
     # The margin parameter controls how far apart non-matching pairs are pushed.
-    train_loss = losses.ContrastiveLoss(model_ft, margin=margin)
+    train_loss = losses.OnlineContrastiveLoss(model_ft, margin=margin)
     
     # Fine-tune the model with the contrastive loss.
     model_ft.fit(train_objectives=[(train_dataloader, train_loss)],
