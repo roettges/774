@@ -18,7 +18,8 @@ output/*
 # I am updating this to not send any csv files to git, so only pickle files are sent
 *.csv
 *.CSV
-
+*.zip
+*.jsonl
 
 # # C extensions
 # *.so

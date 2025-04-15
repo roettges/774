@@ -17,7 +17,7 @@ def upload_and_submit_batch(filename):
         endpoint="/v1/embeddings",
         completion_window="24h",
         metadata={
-            "description": "quora question embedding"
+            "description": f"{filename} embeddings"
         }
     )
     return metadata
