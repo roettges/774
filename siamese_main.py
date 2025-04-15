@@ -12,6 +12,7 @@ import sys
 from datetime import datetime
 import atexit
 import preprocessData as pp
+from siamese_gpt_model import train_siamese_gpt
 
 
 os.makedirs("logs", exist_ok=True)
@@ -89,7 +90,9 @@ def main():
         val_sample = val.sample(frac=0.01, random_state=42)
     
         # train_siamese(train_sample, es_sample, val_sample, device=device)
-        train_siamese(train, early_stop, val, device=device)
+        # train_siamese(train, early_stop, val, device=device)
+        
+        train_siamese_gpt(train, early_stop, val, device=device)
         
     # elif args.mode == 2:
     #     print("Running GPT4 Analysis...")
@@ -325,7 +328,7 @@ if __name__ == "__main__":
     if torch.backends.mps.is_available():
         device = torch.device("mps")
     elif torch.cuda.is_available():
-        device = torch.device("cuda:2")
+        device = torch.device("cuda:1")
     else:
         device = torch.device("cpu")
     
