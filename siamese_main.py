@@ -324,7 +324,7 @@ if __name__ == "__main__":
     if torch.backends.mps.is_available():
         device = torch.device("mps")
     elif torch.cuda.is_available():
-        device = torch.device("cuda:1")
+        device = torch.device("cuda:2")
     else:
         device = torch.device("cpu")
     
