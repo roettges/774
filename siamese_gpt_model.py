@@ -39,13 +39,11 @@ class SiameseDataset(Dataset):
             # Directly pull precomputed embeddings from DataFrame.
             emb1 = row['question1_embedding']
             emb2 = row['question2_embedding']
-
-            # If embeddings are stored as strings, uncomment the following lines:
-            # import ast
-            # if isinstance(emb1, str):
-            #     emb1 = ast.literal_eval(emb1)
-            # if isinstance(emb2, str):
-            #     emb2 = ast.literal_eval(emb2)
+            
+            if isinstance(emb1, str):
+                emb1 = ast.literal_eval(emb1)
+            if isinstance(emb2, str):
+                emb2 = ast.literal_eval(emb2)
             
             # Convert embeddings to torch tensors.
             emb1 = torch.tensor(emb1, dtype=torch.float32)
