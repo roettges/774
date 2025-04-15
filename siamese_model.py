@@ -22,10 +22,9 @@ import pandas as pd
 log_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 class SiameseDataset(Dataset):
-    def __init__(self, df, encoder, use_sim_features=True):
+    def __init__(self, df, encoder):
         self.encoder = encoder
         self.df = df.reset_index(drop=True)
-        self.use_sim_features = use_sim_features
 
     def __len__(self):
         return len(self.df)
@@ -41,12 +40,7 @@ class SiameseDataset(Dataset):
             emb1 = self.encoder.encode(q1, convert_to_tensor=True)
             emb2 = self.encoder.encode(q2, convert_to_tensor=True)
     
-            if self.use_sim_features:
-                cos_sim = self.encoder.similarity_pairwise(emb1.unsqueeze(0), emb2.unsqueeze(0))[0]
-                sim_feats = cos_sim.unsqueeze(0) # Shape: (1, 1)
-                return emb1, emb2, sim_feats, label
-            else:
-                return emb1, emb2, label
+            return emb1, emb2, label
 
         except Exception as e:
             print(f"[Data Error] Skipping index {idx}: {e}")
@@ -56,25 +50,22 @@ class SiameseDataset(Dataset):
 
 
 class SiameseNet(nn.Module):
-    def __init__(self, embedding_dim=384, sim_feature_dim=0, hidden_dim=256):
+    def __init__(self, embedding_dim=384, hidden_dim=256):
         super().__init__()
         self.fc = nn.Sequential(
-            nn.Linear(embedding_dim * 3 + sim_feature_dim, hidden_dim),
+            nn.Linear(embedding_dim * 3, hidden_dim),
             nn.ReLU(),
             nn.Dropout(0.3),
             nn.Linear(hidden_dim, 1),
             nn.Sigmoid()
         )
 
-    def forward(self, emb1, emb2, sim_feats):
+    def forward(self, emb1, emb2):
         diff = torch.abs(emb1 - emb2)
-        if sim_feats is not None:
-            concat = torch.cat((emb1, emb2, diff, sim_feats), dim=1)
-        else:
-            concat = torch.cat((emb1, emb2, diff), dim=1)
+        concat = torch.cat((emb1, emb2, diff), dim=1)
         return self.fc(concat)
 
-def evaluate(model, dataloader, device, use_sim_features, dataset_name="Validation", test_mode=False):
+def evaluate(model, dataloader, device, dataset_name="Validation", test_mode=False):
     """
     Evaluates the model and computes metrics.
     If test_mode is False (default), computes accuracy and F1 score.
@@ -84,18 +75,13 @@ def evaluate(model, dataloader, device, use_sim_features, dataset_name="Validati
     preds, trues = [], []
     with torch.no_grad():
         for batch in dataloader:
-            if use_sim_features:
-                emb1, emb2, sim_feats, labels = batch
-                sim_feats = sim_feats.to(device)
-            else:
-                emb1, emb2, labels = batch
-                sim_feats = None
+            emb1, emb2, labels = batch
 
             emb1 = emb1.to(device)
             emb2 = emb2.to(device)
             labels = labels.to(device)
 
-            outputs = model(emb1, emb2, sim_feats)
+            outputs = model(emb1, emb2)
             batch_preds = outputs.squeeze().cpu().numpy().tolist()
             preds += batch_preds
             trues += labels.squeeze().cpu().numpy().tolist()
@@ -136,7 +122,7 @@ def evaluate(model, dataloader, device, use_sim_features, dataset_name="Validati
         
     return metrics
 
-def save_predictions(model, test_set, device, use_sim_features, output_path, batch_size=64):
+def save_predictions(model, test_set, device, output_path, batch_size=64):
     """
     Evaluates the model on the test set, appends two new columns to the original DataFrame:
       - 'raw_prediction': continuous model output
@@ -150,16 +136,11 @@ def save_predictions(model, test_set, device, use_sim_features, output_path, bat
     
     with torch.no_grad():
         for batch in test_loader:
-            if use_sim_features:
-                emb1, emb2, sim_feats, _ = batch
-                sim_feats = sim_feats.to(device)
-            else:
-                emb1, emb2, _ = batch
-                sim_feats = None
+            emb1, emb2, _ = batch
 
             emb1 = emb1.to(device)
             emb2 = emb2.to(device)
-            outputs = model(emb1, emb2, sim_feats)
+            outputs = model(emb1, emb2)
             
             batch_raw = outputs.squeeze().cpu().numpy().tolist()
             batch_binary = [1 if p > 0.5 else 0 for p in batch_raw]
@@ -173,19 +154,19 @@ def save_predictions(model, test_set, device, use_sim_features, output_path, bat
     print(f"Predictions saved to {output_path}")
 
 def train_siamese(df_train, df_val, df_test, device="cpu", epochs=50, batch_size=64, 
-                  use_sim_features=True, early_stopping_patience=5):
+                  early_stopping_patience=5):
     # encoder = SentenceTransformer('all-MiniLM-L6-v2')
-    encoder = SentenceTransformer("models/finetuned_sbert_cos_sim")
+    encoder = SentenceTransformer("models/finetuned_sbert_online_contrastive")
     encoder = encoder.to(device)
-    train_set = SiameseDataset(df_train, encoder, use_sim_features=use_sim_features)
-    val_set = SiameseDataset(df_val, encoder, use_sim_features=use_sim_features)
-    test_set = SiameseDataset(df_test, encoder, use_sim_features=use_sim_features)
+    train_set = SiameseDataset(df_train, encoder)
+    val_set = SiameseDataset(df_val, encoder)
+    test_set = SiameseDataset(df_test, encoder)
 
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_set, batch_size=batch_size)
     test_loader = DataLoader(test_set, batch_size=batch_size)
 
-    model = SiameseNet(sim_feature_dim=1 if use_sim_features else 0).to(device)
+    model = SiameseNet().to(device)
     criterion = nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
@@ -197,19 +178,14 @@ def train_siamese(df_train, df_val, df_test, device="cpu", epochs=50, batch_size
         model.train()
         total_loss = 0
         for batch in tqdm(train_loader, desc=f"Epoch {epoch+1}"):
-            if use_sim_features:
-                emb1, emb2, sim_feats, labels = batch
-                sim_feats = sim_feats.to(device)
-            else:
-                emb1, emb2, labels = batch
-                sim_feats = None
+            emb1, emb2, labels = batch
             
             emb1 = emb1.to(device)
             emb2 = emb2.to(device)
             labels = labels.to(device)
             
             optimizer.zero_grad()
-            outputs = model(emb1, emb2, sim_feats)
+            outputs = model(emb1, emb2)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
@@ -218,7 +194,7 @@ def train_siamese(df_train, df_val, df_test, device="cpu", epochs=50, batch_size
         print(f"Epoch {epoch+1} Loss: {total_loss:.4f}")
 
         # Evaluate on validation set (test_mode=False)
-        val_metrics = evaluate(model, val_loader, device, use_sim_features, dataset_name="Validation", test_mode=False)
+        val_metrics = evaluate(model, val_loader, device, dataset_name="Validation", test_mode=False)
         print(f"Epoch {epoch+1} Validation Metrics: {val_metrics}")
 
         # Early stopping: if F1 improved, save the model and reset the counter
@@ -228,6 +204,8 @@ def train_siamese(df_train, df_val, df_test, device="cpu", epochs=50, batch_size
             best_model_state = model.state_dict()
             print("Validation F1 improved. Saving best model...")
         else:
+            if val_metrics['f1_score'] > best_f1:
+                best_model_state = model.state_dict()
             epochs_no_improve += 1
             print(f"No improvement in F1 for {epochs_no_improve} epoch(s).")
             if epochs_no_improve >= early_stopping_patience:
@@ -248,10 +226,10 @@ def train_siamese(df_train, df_val, df_test, device="cpu", epochs=50, batch_size
     print(f"Final model saved to {model_path}")
 
     # Evaluate and print detailed metrics on test set (test_mode=True)
-    test_metrics = evaluate(model, test_loader, device, use_sim_features, dataset_name="Test", test_mode=True)
+    test_metrics = evaluate(model, test_loader, device, dataset_name="Test", test_mode=True)
 
     # Save predictions to CSV for the test set
     output_csv = f"predictions_{log_time}.csv"
-    save_predictions(model, test_set, device, use_sim_features, output_csv)
+    save_predictions(model, test_set, device, output_csv)
     
     return test_metrics

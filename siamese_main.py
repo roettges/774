@@ -58,7 +58,8 @@ def main():
     print("Using device:", device)
     
     # Continue with the rest of your workflow...
-    df = pd.read_csv("data/preprocessedquestions.csv")
+    # df = pd.read_csv("data/preprocessedquestions.csv")
+    df = pd.read_csv("data/output_with_embeddings.csv")
     
     # # Create a fixed, shrunken validation set (small_val) from the full df.
     # # This uses the shrinkDataset and splitData functions below.
@@ -87,8 +88,8 @@ def main():
         es_sample = early_stop.sample(frac=0.01, random_state=42)
         val_sample = val.sample(frac=0.01, random_state=42)
     
-        # train_siamese(train_sample, es_sample, val_sample, device=device, use_sim_features=True)
-        train_siamese(train, early_stop, val, device=device, use_sim_features=False)
+        # train_siamese(train_sample, es_sample, val_sample, device=device)
+        train_siamese(train, early_stop, val, device=device)
         
     # elif args.mode == 2:
     #     print("Running GPT4 Analysis...")
