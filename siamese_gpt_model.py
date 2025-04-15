@@ -216,6 +216,10 @@ def train_siamese_gpt(df_train, df_val, df_test, device="cpu", epochs=50, batch_
             
             optimizer.zero_grad()
             outputs = model(emb1, emb2)
+            
+            print(f"emb1: {emb1.shape}, {emb1.device}, emb2: {emb2.shape}, {emb2.device}, labels: {labels.device}")
+            print(f"model device: {next(model.parameters()).device}")
+
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
