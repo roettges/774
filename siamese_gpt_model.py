@@ -174,7 +174,7 @@ def save_predictions(model, test_set, device, output_path, batch_size=64):
 def train_siamese_gpt(df_train, df_val, df_test, device="cpu", epochs=50, batch_size=64, 
                   early_stopping_patience=5):
     # Dynamically determine the embedding dimension from the first row of the training DataFrame.
-    sample_emb = df_train.iloc[0]['emb1']
+    sample_emb = df_train.iloc[0]['question1_embedding']
     # If the embedding is stored as a list or numpy array:
     if isinstance(sample_emb, list):
         embedding_dim = len(sample_emb)
