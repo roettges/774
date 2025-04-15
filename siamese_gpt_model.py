@@ -18,6 +18,7 @@ import os
 from datetime import datetime
 import atexit
 import pandas as pd
+import ast
 
 log_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
@@ -175,6 +176,8 @@ def train_siamese_gpt(df_train, df_val, df_test, device="cpu", epochs=50, batch_
                   early_stopping_patience=5):
     # Dynamically determine the embedding dimension from the first row of the training DataFrame.
     sample_emb = df_train.iloc[0]['question1_embedding']
+    if isinstance(sample_emb, str):
+        sample_emb = ast.literal_eval(sample_emb)
     # If the embedding is stored as a list or numpy array:
     if isinstance(sample_emb, list):
         embedding_dim = len(sample_emb)
