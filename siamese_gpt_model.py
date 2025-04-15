@@ -139,7 +139,7 @@ def evaluate(model, dataloader, device, dataset_name="Validation", test_mode=Fal
         
     return metrics
 
-def save_predictions(model, test_set, device, output_path, batch_size=64):
+def save_predictions(model, test_set, device, output_path, batch_size=512):
     """
     Evaluates the model on the test set, appends two new columns to the original DataFrame:
       - 'raw_prediction': continuous model output
@@ -170,7 +170,7 @@ def save_predictions(model, test_set, device, output_path, batch_size=64):
     test_set.df.to_csv(output_path, index=False)
     print(f"Predictions saved to {output_path}")
 
-def train_siamese_gpt(df_train, df_val, df_test, device="cpu", epochs=50, batch_size=64, 
+def train_siamese_gpt(df_train, df_val, df_test, device="cpu", epochs=50, batch_size=512, 
                   early_stopping_patience=5):
     # Dynamically determine the embedding dimension from the first row of the training DataFrame.
     sample_emb = df_train.iloc[0]['question1_embedding']
@@ -216,10 +216,6 @@ def train_siamese_gpt(df_train, df_val, df_test, device="cpu", epochs=50, batch_
             
             optimizer.zero_grad()
             outputs = model(emb1, emb2)
-            
-            print(f"emb1: {emb1.shape}, {emb1.device}, emb2: {emb2.shape}, {emb2.device}, labels: {labels.device}")
-            print(f"model device: {next(model.parameters()).device}")
-
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
