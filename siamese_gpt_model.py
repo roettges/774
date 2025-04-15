@@ -46,9 +46,9 @@ class SiameseDataset(Dataset):
                 emb2 = ast.literal_eval(emb2)
             
             # Convert embeddings to torch tensors.
-            emb1 = torch.tensor(emb1, dtype=torch.float32)
-            emb2 = torch.tensor(emb2, dtype=torch.float32)
-            
+            emb1 = torch.from_numpy(np.array(emb1, dtype=np.float32))
+            emb2 = torch.from_numpy(np.array(emb2, dtype=np.float32))
+
             label = torch.tensor([row['is_duplicate']], dtype=torch.float32)
 
             return emb1, emb2, label
