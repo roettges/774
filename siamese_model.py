@@ -204,8 +204,6 @@ def train_siamese(df_train, df_val, df_test, device="cpu", epochs=50, batch_size
             best_model_state = model.state_dict()
             print("Validation F1 improved. Saving best model...")
         else:
-            if val_metrics['f1_score'] > best_f1:
-                best_model_state = model.state_dict()
             epochs_no_improve += 1
             print(f"No improvement in F1 for {epochs_no_improve} epoch(s).")
             if epochs_no_improve >= early_stopping_patience:
