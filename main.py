@@ -43,7 +43,7 @@ def main():
         print("2: GPT4 Analysis")
         print("3: Classical Classifier")
         print("4: Save Similarity Scores")
-        print("5: Miscellaneous Tests")
+        print("5: Distance Metrics for GPT4 embeddings")
         print("6: Evaluate a Model")
         args.mode = int(input("\nEnter your choice (1-6): "))
         
@@ -52,7 +52,9 @@ def main():
     # preprocess the data
     df = preprocess.preprocessing(df)
     # df = pd.read_csv("data/questions.csv")
-    train, test, val = splitData(df, None, True)
+    #TODO: align on train/test/val split 
+    train, test, val = splitData(df)
+    #train, test, val = splitData(df, None, True)
     # train, val, test = splitData(df, 4000)
     if args.mode == 1:
         print("Running Siamese Network...")
@@ -61,7 +63,6 @@ def main():
         val_sample = val.sample(frac=0.01, random_state=42)
         test_sample = test.sample(frac=0.01, random_state=42)
 
-        
         # jac = sm.Jaccard()
         # lev = sm.Levenshtein()
         # for d in [train_df, val_df, test_df]:
@@ -150,43 +151,52 @@ def main():
             #TODO: save the similarity scores to a file in the output folder
             pass
     elif args.mode == 5:
-        print("Running Miscellaneous Tests...")
-        # Current test logic here
-        # for now just going to test some tokenization methods from https://anhaidgroup.github.io/py_stringmatching/v0.4.2/Tutorial.html
-        # get an example q1 string and q2 string
-        q1 = df.iloc[0]['question1']
-        q2 = df.iloc[0]['question2']
-        print(f"Example question 1: {q1}")
-        print(f"Example question 2: {q2}")
-    
-        # for now just going to lowercase the data
-        q1 = q1.lower()
-        q2 = q2.lower()
-        # create a q3 tokenizer
-        qg3_tok = sm.QgramTokenizer(qval=3)
-        # tokenize the questions
-        q1_tokens = qg3_tok.tokenize(q1)
-        q2_tokens = qg3_tok.tokenize(q2)
-        print(f"Tokenized question 1: {q1_tokens}")
-        print(f"Tokenized question 2: {q2_tokens}")
-        #lets also create a simple whitespace tokenizer (like a word based but we still have all sorts of potential characters)
-        ws_tok = sm.WhitespaceTokenizer()
-        q1_tokens_ws = ws_tok.tokenize(q1)
-        q2_tokens_ws = ws_tok.tokenize(q2)
-        print(f"Whitespace tokenized question 1: {q1_tokens_ws}")
-        print(f"Whitespace tokenized question 2: {q2_tokens_ws}")
-        # now lets calculate the jaccard similarity between the two tokenized questions
-        #create a Jaccard similarity measure object
-        jac = sm.Jaccard()
-        test_jac_3gram = jac.get_raw_score(q1_tokens, q2_tokens) 
-        # now lets calculate the jaccard similarity between the two whitespace tokenized questions
-        test_jac_ws = jac.get_raw_score(q1_tokens_ws, q2_tokens_ws) 
-        # create a Levenshtein similarity measure object
-        lev = sm.Levenshtein()
-        test_lev = lev.get_raw_score(q1, q2) # note q1 and q2 qre the og strings
-        print(f"Jaccard similarity (3-gram): {test_jac_3gram}")
-        print(f"Jaccard similarity (whitespace): {test_jac_ws}")
-        print(f"Levenshtein similarity: {test_lev}")
+        print("Getting GPT4 embeddings...")
+        embeddingsFilePath = "data/embeddings_and_data_with_embeddings/output_with_embeddings.csv"
+        # check if the file exists
+        if not os.path.exists(embeddingsFilePath):
+            print(f"File {embeddingsFilePath} does not exist. Please check the path.")
+            return
+        # load the embeddings
+        embedding_df = pd.read_csv(embeddingsFilePath)
+        # check if the file is empty
+        if embedding_df.empty:
+            print(f"File {embeddingsFilePath} is empty. Please check the file.")
+            return
+        # add empty columns for cosine_sim, manhattan_dist, euclidean_dist
+        embedding_df['cosine_sim'] = 0.0
+        embedding_df['manhattan_dist'] = 0.0
+        embedding_df['euclidean_dist'] = 0.0
+        
+        # for each row get & update the cosine similarity, manhattan distance, and euclidean distance
+        for index, row in embedding_df.iterrows():
+            # get the embeddings
+            question1_embedding = row['question1_embedding']
+            question2_embedding = row['question2_embedding']
+            # convert to numpy array
+            question1_embedding = np.fromstring(question1_embedding[1:-1], sep=',')
+            question2_embedding = np.fromstring(question2_embedding[1:-1], sep=',')
+            # calculate the cosine similarity
+            cosine_sim = hf.cosine_similarity(question1_embedding, question2_embedding)
+            # calculate the manhattan distance
+            manhattan_dist = hf.manhattan_distance(question1_embedding, question2_embedding)
+            # calculate the euclidean distance
+            euclidean_dist = hf.euclidean_distance(question1_embedding, question2_embedding)
+            
+            # update the dataframe
+            embedding_df.at[index, 'cosine_sim'] = cosine_sim
+            embedding_df.at[index, 'manhattan_dist'] = manhattan_dist
+            embedding_df.at[index, 'euclidean_dist'] = euclidean_dist
+            
+        # save the dataframe to a new file
+        outputFilePath = "data/embeddings_and_data_with_embeddings/full_data_with_gpt4embeddings_and_distances.csv"
+        embedding_df.to_csv(outputFilePath, index=False)
+        # save a pickle file of the dataframe
+        outputPicklePath = "data/embeddings_and_data_with_embeddings/full_data_with_gpt4embeddings_and_distances.pkl"
+        embedding_df.to_pickle(outputPicklePath)
+        # print the first 5 rows of the dataframe
+        print(embedding_df.head())
+        return
     elif args.mode == 6:
         # prompt user for file name
         print("Please enter the file name of the model to evaluate:")
@@ -213,7 +223,7 @@ def main():
                 return
         # evaluate the model
         eval_results,fp,fn = hf.evaluateM(fname, col_name, pred_col_name, threshold)
-        raise NotImplementedError("Model evaluation not implemented. Please implement the evaluateModel function.")
+        return
     
 def getData():
     """
@@ -227,7 +237,7 @@ def getData():
         raise ValueError("The dataset is empty. Please check the file content.")
     print(f"Loaded {len(df)} rows from the dataset.")
     #print the head of the dataframe
-    print(df.head())
+    #print(df.head())
     return df
 
 def shrinkDataset(df):

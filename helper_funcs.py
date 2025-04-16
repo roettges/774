@@ -593,8 +593,82 @@ def savePickleAsCSV(filenamepath):
     return
 
 # Example usage
-ex_filepath = './evaluation_results/gpt4o_results_combined/false_positive/false_positive_examples.pkl'
-savePickleAsCSV(ex_filepath)
+#ex_filepath = './evaluation_results/gpt4o_results_combined/false_positive/false_positive_examples.pkl'
+#savePickleAsCSV(ex_filepath)
+
+def cosine_similarity(embedding1, embedding2):
+    """
+    Calculate the cosine similarity between two embeddings.
+    INPUTS:
+    embedding1: the first embedding
+    embedding2: the second embedding
+    OUTPUTS:
+    cosine similarity score between -1 and 1
+    """
+    from sklearn.metrics.pairwise import cosine_similarity
+    # Calculate the cosine similarity
+    return cosine_similarity([embedding1], [embedding2])
+
+def manhattan_distance(embedding1, embedding2):
+    """
+    Calculate the Manhattan distance between two embeddings.
+    INPUTS:
+    embedding1: the first embedding
+    embedding2: the second embedding
+    OUTPUTS:
+    Manhattan distance (between 0 and inf)
+    """
+    from scipy.spatial.distance import cityblock
+    # Calculate the Manhattan distance
+    return cityblock(embedding1, embedding2)
+
+def euclidean_distance(embedding1, embedding2):
+    """
+    Calculate the Euclidean distance between two embeddings.
+    INPUTS:
+    embedding1: the first embedding
+    embedding2: the second embedding
+    OUTPUTS:
+    Euclidean distance (between 0 and inf)
+    """
+    from scipy.spatial.distance import euclidean
+    # Calculate the Euclidean distance
+    return euclidean(embedding1, embedding2)
+
+
+
+# def tanhManhattanDist(embedding1, embedding2):
+#     """
+#     Calculate the tanh of the Manhattan distance between two embeddings.
+#     INPUTS:
+#     embedding1: the first embedding
+#     embedding2: the second embedding
+#     OUTPUTS:
+#     tanh of the Manhattan distance (between -1 and 1)
+#     """
+#     from scipy.spatial.distance import cityblock
+#     # Calculate the Manhattan distance
+#     manhattan_distance = cityblock(embedding1, embedding2)
+#     # Calculate the tanh of the Manhattan distance
+#     return np.tanh(manhattan_distance)
+
+# def tanhEuclideanDist(embedding1, embedding2):
+#     """
+#     Calculate the tanh of the Euclidean distance between two embeddings.
+#     INPUTS:
+#     embedding1: the first embedding
+#     embedding2: the second embedding
+#     OUTPUTS:
+#     tanh of the Euclidean distance (between -1 and 1)
+#     """
+#     from scipy.spatial.distance import euclidean
+#     # Calculate the Euclidean distance
+#     euclidean_distance = euclidean(embedding1, embedding2)
+#     # Calculate the tanh of the Euclidean distance
+#     return np.tanh(euclidean_distance)
+    
+    
+
 
 #mydata = pd.read_csv('data/questions.csv')
 #getLengthInfo(mydata)
