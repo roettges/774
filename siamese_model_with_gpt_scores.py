@@ -42,8 +42,9 @@ class SiameseDataset(Dataset):
             
             # add in cosine sim from gpt and manhattan distance
             cosine_sim = torch.tensor([row['cosine_sim']], dtype=torch.float32)
+            print(cosine_sim)
             manhattan_dist = torch.tensor([row['manhattan_dist']], dtype=torch.float32)
-    
+            print(manhattan_dist)
             return emb1, emb2, label, cosine_sim, manhattan_dist
 
         except Exception as e:
