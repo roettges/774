@@ -198,31 +198,53 @@ def main():
         print(embedding_df.head())
         return
     elif args.mode == 6:
-        # prompt user for file name
-        print("Please enter the file name of the model to evaluate:")
-        fname = input("\nEnter your choice (file name): ")
-        print("Enter the column name of the ground truth labels, the default value is is_duplicate:")
-        col_name = input("\nEnter your choice (column name): ")
-        if col_name == "":
-            col_name = "is_duplicate"
-        print("Enter the column name of the predited labels, or if you only have a similarity score, enter the column name of the similarity score:")
-        pred_col_name = input("\nEnter your choice (column name): ")
-        if pred_col_name == "":
-            pred_col_name = "similarity_score"
-        print("If you specified a column for a similarity score, please enter the threshold for the similarity score to be considered a duplicate, otherwise you can leave this blank:")
-        threshold = input("\nEnter your choice (threshold): ")
-        if threshold == "":
-            threshold = None
+        print("Is this for gpt4 eval? If yes enter 1, otherwise enter anything else")
+        gpt4_eval = int(input("\nEnter your choice (1-2): "))
+        if gpt4_eval == 1:
+            # read from /data/full_data_with_gpt4embeddings_and_distances.csv
+            gpt4_df =  pd.read_csv("data/embeddings_and_data_with_embeddings/full_data_with_gpt4embeddings_and_distances.csv")
+            train,test,val = splitData(gpt4_df)
+            # prompt for threshold for cosine similarity
+            print("Please enter the threshold for cosine similarity to be considered a duplicate:")
+            thresh = input("\nEnter your choice (threshold): ")
+            # if threshold is null or invalid, default to 0.5
+            if thresh == "":
+                thresh = 0.5
+            else:
+                # make sure threshold is a float
+                try:
+                    thresh = float(thresh)
+                except ValueError:
+                    print("Invalid threshold value. Please enter a number, try again.")
+                    # quit the program
+                    return
+            hf.simpleEvaluateM(filePathName=None, gt_column="is_duplicate", pred_column="cosine_sim", threshold=thresh, data=val)
         else:
-            #make sure threshold is a float
-            try:
-                threshold = float(threshold)
-            except ValueError:
-                print("Invalid threshold value. Please enter a number, try again.")
-                # quit the program
-                return
-        # evaluate the model
-        eval_results,fp,fn = hf.evaluateM(fname, col_name, pred_col_name, threshold)
+            # prompt user for file name
+            print("Please enter the file name of the model to evaluate:")
+            fname = input("\nEnter your choice (file name): ")
+            print("Enter the column name of the ground truth labels, the default value is is_duplicate:")
+            col_name = input("\nEnter your choice (column name): ")
+            if col_name == "":
+                col_name = "is_duplicate"
+            print("Enter the column name of the predited labels, or if you only have a similarity score, enter the column name of the similarity score:")
+            pred_col_name = input("\nEnter your choice (column name): ")
+            if pred_col_name == "":
+                pred_col_name = "similarity_score"
+            print("If you specified a column for a similarity score, please enter the threshold for the similarity score to be considered a duplicate, otherwise you can leave this blank:")
+            threshold = input("\nEnter your choice (threshold): ")
+            if threshold == "":
+                threshold = None
+            else:
+                #make sure threshold is a float
+                try:
+                    threshold = float(threshold)
+                except ValueError:
+                    print("Invalid threshold value. Please enter a number, try again.")
+                    # quit the program
+                    return
+            # evaluate the model
+            eval_results,fp,fn = hf.evaluateM(fname, col_name, pred_col_name, threshold)
         return
     
 def getData():

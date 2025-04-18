@@ -24,7 +24,7 @@ def timer(func):
         return result
     return wrapper
 
-def simpleEvaluateM(filePathName, gt_column, pred_column):
+def simpleEvaluateM(filePathName=None, gt_column="is_duplicate", pred_column="pred_binary", threshold=None, data=None):
     """
     Evaluate the model's predictions against the ground truth data using accuracy.
     generate false positive and false negative files
@@ -33,8 +33,19 @@ def simpleEvaluateM(filePathName, gt_column, pred_column):
     filename: the name of the file containing the ground truth data. It is assumed to be a CSV
     gt_column: the name of the column containing the ground truth data
     pred_column: the name of the column containing the model's predictions
+    threshold: the threshold to use for binary classification. If None, the column is assumed to be binary already and will be used as is.
+    OUTPUTS:
+    None
     """
-    df = pd.read_csv(filePathName)
+    # if filePathName is None, use the data parameter
+    if filePathName is None and data is not None:
+        df = data
+        parsed_filename = 'gpt_cos_threshold'
+    elif filePathName is not None:
+        df = pd.read_csv(filePathName)
+        parsed_filename = os.path.splitext(filePathName)[0] # remove the extension
+        parsed_filename = os.path.basename(parsed_filename) # remove the path
+        print(parsed_filename)
     #verify that the columns exist
     if gt_column not in df.columns:
         raise ValueError(f"Ground truth column '{gt_column}' not found in the data.")
@@ -45,7 +56,13 @@ def simpleEvaluateM(filePathName, gt_column, pred_column):
         raise ValueError(f"Ground truth column '{gt_column}' is not binary.")
     # Check if the prediction column is binary
     if df[pred_column].nunique() != 2:
-        raise ValueError(f"Prediction column '{pred_column}' is not binary.")
+        # check if threshold is None
+        if threshold is None:
+            raise ValueError(f"Prediction column '{pred_column}' is not binary and no threshold was provided.")
+        # if threshold is provided, add a prediction column using the threshold
+        df['pred_binary'] = np.where(df[pred_column] >= threshold, 1, 0)
+        #set pred_column to pred_binary
+        pred_column = 'pred_binary'
     # Calculate accuracy
     accuracy = np.mean(df[gt_column] == df[pred_column])
     #calculate precision
@@ -56,13 +73,15 @@ def simpleEvaluateM(filePathName, gt_column, pred_column):
     recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
     f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
     
-    parsed_filename = os.path.splitext(filePathName)[0] # remove the extension
-    parsed_filename = os.path.basename(parsed_filename) # remove the path
-    print(parsed_filename)
+    
     # save data in evaluation_results folder
     results_folder = os.path.join(os.getcwd(), 'evaluation_results')
     #generate a subdirectory for the evaluation results based on the filename
     results_folder = os.path.join(results_folder, parsed_filename)
+    # if there was a threshold, add it to the folder name
+    if threshold is not None:
+        results_folder = os.path.join(results_folder, str(threshold))
+    # check if the results folder exists, if not create it
     
     evaluation_results = {
         'accuracy': accuracy,
@@ -127,8 +146,7 @@ def simpleEvaluateM(filePathName, gt_column, pred_column):
 
 # Example usage
 #simpleEvaluateM('siamese_5epoch_predictions_2025-04-11_08-14-23.csv', 'is_duplicate', 'predicted')
-
-    
+simpleEvaluateM('siamese_finetuned_onlinecontrastive_preprocessed_predictions_2025-04-15_11-08-11.csv', 'is_duplicate', 'predicted')
 
 def evaluateM(filename, gt_column, pred_column, threshold=None):
     """
