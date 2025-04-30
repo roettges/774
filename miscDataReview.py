@@ -59,7 +59,8 @@ for idx, row in different_rows.head(50).iterrows():
 # identify 'id' values in evaluation_results/siamese_finetuned_onlinecontrastive_preprocessed_predictions_2025-04-15_11-08-11/false_positive/false_positive_examples.csv that are not in evaluation_results/gpt_cos_threshold/0.83/false_positive/false_positive_examples.csv
 # then do the inverse
 # create a new subfolder under evaluation_results called FP_comparison and make a file indicating the differences
-gpt_fp = pd.read_csv('evaluation_results/gpt_cos_threshold/0.83/false_positive/false_positive_examples.csv')
+#gpt_fp = pd.read_csv('evaluation_results/gpt_cos_threshold/0.83/false_positive/false_positive_examples.csv')
+gpt_fp = pd.read_csv('evaluation_results/siamese_gpt_predictions_REMOVED_CORRUPTIONS/false_positive/false_positive_examples.csv')
 siamese_fp = pd.read_csv('evaluation_results/siamese_finetuned_onlinecontrastive_preprocessed_predictions_2025-04-15_11-08-11/false_positive/false_positive_examples.csv')
 gpt_fp_ids = set(gpt_fp['id'])
 siamese_fp_ids = set(siamese_fp['id'])

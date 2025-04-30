@@ -1,0 +1,7 @@
+Accuracy: 0.8265
+Precision: 0.3561
+Recall: 0.7217
+F1-Score: 0.4769
+True Positives: 5357
+False Positives: 9686
+False Negatives: 2066

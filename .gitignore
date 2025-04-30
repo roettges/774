@@ -21,6 +21,10 @@ output/*
 *.zip
 *.jsonl
 
+# Evaluation results CSVs and PKLs
+evaluation_results/**/*.csv
+evaluation_results/**/*.pkl
+
 # # C extensions
 # *.so
 

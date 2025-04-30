@@ -6,7 +6,8 @@ import py_stringmatching as sm
 import argparse
 import torch
 from gpt4 import gpt4_analysis
-from siamese_model import train_siamese
+#from siamese_model import train_siamese
+import siamese_simple_main
 from sklearn.model_selection import train_test_split
 import preprocessData as preprocess
 
@@ -57,19 +58,21 @@ def main():
     #train, test, val = splitData(df, None, True)
     # train, val, test = splitData(df, 4000)
     if args.mode == 1:
-        print("Running Siamese Network...")
-        # TODO: Add Siamese network logic
-        train_sample = train.sample(frac=0.01, random_state=42)
-        val_sample = val.sample(frac=0.01, random_state=42)
-        test_sample = test.sample(frac=0.01, random_state=42)
+        print("\nLaunching Siamese Network Training...")
+        siamese_simple_main.main()
+        return
+        # print("Running Siamese Network...")
+        # train_sample = train.sample(frac=0.01, random_state=42)
+        # val_sample = val.sample(frac=0.01, random_state=42)
+        # test_sample = test.sample(frac=0.01, random_state=42)
 
-        # jac = sm.Jaccard()
-        # lev = sm.Levenshtein()
-        # for d in [train_df, val_df, test_df]:
-        #     d['sim_jaccard'] = [jac.get_raw_score(a.lower().split(), b.lower().split()) for a, b in zip(d['question1'], d['question2'])]
-        #     d['sim_levenshtein'] = [lev.get_raw_score(a.lower(), b.lower()) for a, b in zip(d['question1'], d['question2'])]
+        # # jac = sm.Jaccard()
+        # # lev = sm.Levenshtein()
+        # # for d in [train_df, val_df, test_df]:
+        # #     d['sim_jaccard'] = [jac.get_raw_score(a.lower().split(), b.lower().split()) for a, b in zip(d['question1'], d['question2'])]
+        # #     d['sim_levenshtein'] = [lev.get_raw_score(a.lower(), b.lower()) for a, b in zip(d['question1'], d['question2'])]
     
-        train_siamese(train_sample, val_sample, test_sample, device=device, use_sim_features=False)
+        # train_siamese(train_sample, val_sample, test_sample, device=device, use_sim_features=False)
         
     elif args.mode == 2:
         print("Running GPT4 Analysis...")
@@ -86,7 +89,7 @@ def main():
         results_3 = gpt4_analysis(val.iloc[4000:, :])
         hf.saveData(results_3, "gpt4o_results_end")
         print("DONE")
-
+        return
     elif args.mode == 3:
         print("Running Classical Classifier...")
         # TODO: Add classifier logic
