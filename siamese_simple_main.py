@@ -73,7 +73,7 @@ def main():
         train, test, val = splitData(df)
         early_stop = train.sample(frac=0.05, random_state=42)
         train = train.drop(early_stop.index)
-        train_siamese_BERT_gpt_combo(train, early_stop, val, device=device)
+        train_siamese_BERT_gpt_combo(train, early_stop, test, device=device)
 
     elif args.mode == 3:
         df = pd.read_csv("data/output_with_embeddings.csv")
