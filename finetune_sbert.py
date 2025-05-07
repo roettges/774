@@ -40,7 +40,7 @@ def fine_tune_sbert(csv_path, output_path="models/finetuned_sbert_cos_sim", batc
     print("got data")
     # Set up the ContrastiveLoss with a margin.
     # The margin parameter controls how far apart non-matching pairs are pushed.
-    train_loss = losses.CosineSimilarityLoss(model_ft)
+    train_loss = losses.OnlineContrastiveLoss(model_ft, margin=margin)
     
     # Fine-tune the model with the contrastive loss.
     model_ft.fit(train_objectives=[(train_dataloader, train_loss)],
