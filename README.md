@@ -46,7 +46,7 @@ You will further be prompted to :
 3. Train Siamese Network with GPT Encodings
 
 Note that these will not run unless you have the access to the authorization header of our finetuned embedding model which we do not provide for public use.
-```If you are seeking to replicate our project you should first finetune your own embedding model.``` 
+```If you are seeking to replicate our project you should first finetune your own embedding model.```  See out ```finetune_sbert.py``` file for an example of how we did this. 
 
 #### siamese_gpt_model.py
 Purpose: Defines a Siamese model that uses GPT-based embeddings for question pairs.
@@ -64,16 +64,31 @@ How to run:
 Imported and used by siamese_simple_main.py select 1: Train BERT Siamese Network
 
 ### Selection 2: GPT4 Analysis 
-Runs GPT-4 based analysis on the validation set, generating predictions or embeddings using the OpenAI API.
+Runs GPT-4 based analysis on the validation set, generating predictions based on a specific prompt asking about the question pair semantic similarity.  
 How to run:
-Select 2 when prompted.
-The script will process the validation data in batches, save results, and print progress.
-Note: Requires a valid OpenAI API key in your environment
+1. Select option 2 when prompted in main.py
+2. The script will process each question pair through GPT-4o
+3. For each pair, GPT outputs a Y/N decision and confidence score (0-100)
+4. Results are saved with columns 'gpt_is_duplicate' and 'gpt_confidence_score'
+5. Processing happens with rate limiting to respect OpenAI's API limits
+
 
 #### gpt4.py
-Purpose: Contains functions for interacting with the OpenAI GPT-4 API (e.g., generating embeddings or analyses).
-How to run:
-Imported and used by other scripts. Requires an OpenAI API key set in the environment variable OPENAI_API_KEY.
+Purpose: Contains functions for interacting with the OpenAI GPT-4 API, including:
+- `openai_api_call`: Makes individual API calls to GPT-4o with formatted prompts
+- `process_api_response`: Parses GPT responses into binary decisions and confidence scores
+- `gpt4_analysis`: Batch processes dataframes through GPT with rate limiting
+
+Implementation details:
+- Uses system message to enforce output format: "[Y|N] [confidence score]"
+- Handles errors and malformed responses gracefully
+- Implements rate limiting (300 requests/minute)
+- Logs progress every 200 rows
+
+Requirements:
+- Valid OpenAI API key set as environment variable
+- openai Python package installed
+- Internet connection for API access
 
 ### Selection 3: Run miscDataReview.py 
 Executes the ```miscDataReview.py``` script for exploratory data analysis or review. 
@@ -102,3 +117,31 @@ Purpose: Contains functions for preprocessing the dataset, such as cleaning, nor
 How to run:
 Imported and called by other scripts (e.g., main.py or siamese_simple_main.py)
 
+## OpenAI Embeddings Generation
+Our project uses OpenAI's API to generate embeddings for question pairs. The embeddings workflow is implemented in the `embeddings` directory.
+
+### How to Generate Embeddings
+
+1. **Prepare Environment**
+   ```bash
+   export OPENAI_API_KEY="your-api-key-here"
+2. Set up batch processing 
+- Open ```embedding_main.py``` uncomment the batch creation and submission code 
+- set data_file_path to your questions CSV 
+- adjust batch_size if needed (default: 40000 requests)
+3. Create and Submit Batches 
+    ```bash
+    cd embeddings
+    mkdir -p batch_files
+    python embedding_main.py
+    ```
+4. Check batch status
+    ```bash 
+    python check_batch_runs.py
+    ```
+5. Process Results Once batches are complete:
+    -Update the completed_batches dictionary in embedding_main.py with batch-to-file mappings
+    Run python embedding_main.py again to:
+        - Download all embeddings results
+        - Add embeddings to your dataset
+        - Save as output_with_embeddings.csv
