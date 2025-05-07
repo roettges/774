@@ -10,6 +10,7 @@ from gpt4 import gpt4_analysis
 import siamese_simple_main
 from sklearn.model_selection import train_test_split
 import preprocessData as preprocess
+import miscDataReview as misc
 
 
 device = "cpu" # change on Mac to "mps" for GPU support 
@@ -31,9 +32,9 @@ def main():
         help="""Select operation mode:
         1: Siamese Network
         2: GPT4 Analysis
-        3: Classical Classifier
+        3: Run miscDataReview.py
         4: Save Similarity Scores
-        5: Miscellaneous Tests
+        5: Calculate Distance Metrics for GPT4 embeddings
         6. Evaluate a Model""",
     )
     args = parser.parse_args()
@@ -48,15 +49,8 @@ def main():
         print("6: Evaluate a Model")
         args.mode = int(input("\nEnter your choice (1-6): "))
         
-    #load data first 
-    df = getData()
-    # preprocess the data
-    df = preprocess.preprocessing(df)
-    # df = pd.read_csv("data/questions.csv")
-    #TODO: align on train/test/val split 
-    train, test, val = splitData(df)
-    #train, test, val = splitData(df, None, True)
-    # train, val, test = splitData(df, 4000)
+    
+
     if args.mode == 1:
         print("\nLaunching Siamese Network Training...")
         siamese_simple_main.main()
@@ -91,9 +85,24 @@ def main():
         print("DONE")
         return
     elif args.mode == 3:
-        print("Running Classical Classifier...")
-        # TODO: Add classifier logic
+        print("Execute miscDataReview.py File")
+        print("miscDataReview.py relies on multiple hard coded data files. If you have not reviewed the script and files to confirm they exist in your directories then you should not procede.")
+        print("Are you sure you want to procede? (y/n)")
+        proceed = input("\nEnter your choice (y/n): ")
+        if proceed.lower() != 'y':
+            print("Exiting...")
+            return
+        else:
+            print("Proceeding...")
+            misc.main()
+            return
     elif args.mode == 4:
+        #load data first 
+        df = getData()
+        # preprocess the data
+        df = preprocess.preprocessing(df)
+        # df = pd.read_csv("data/questions.csv")
+        train, test, val = splitData(df)
         print("Saving Similarity Scores...")
         #prompt user for which method to use
         print("Please select a method to use for similarity scoring:")
@@ -326,14 +335,6 @@ def splitData(df, small_train_size=None, shrink_dataset=False):
     assert len(set(test_df.index).intersection(set(val_df.index))) == 0
     
     return train_df, test_df, val_df
-
-# using py_stringmatching (see webpage: https://anhaidgroup.github.io/py_stringmatching/v0.4.2/Tutorial.html)
-# Computing a similarity score between two given strings x and y then typically consists of four steps: 
-# (1) selecting a similarity measure type
-# (2) selecting a tokenizer type
-# (3) creating a tokenizer object (of the selected type) and using it to tokenize the two given strings x and y
-# (4) creating a similarity measure object (of the selected type) and applying it to the output of the tokenizer to compute a similarity score
-
 
 if __name__ == "__main__":
     main()

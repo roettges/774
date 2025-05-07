@@ -156,8 +156,9 @@ def simpleEvaluateM(filePathName=None, gt_column="is_duplicate", pred_column="pr
 # Example usage
 #simpleEvaluateM('siamese_5epoch_predictions_2025-04-11_08-14-23.csv', 'is_duplicate', 'predicted')
 #simpleEvaluateM('siamese_finetuned_onlinecontrastive_preprocessed_predictions_2025-04-15_11-08-11.csv', 'is_duplicate', 'predicted')
-simpleEvaluateM('siamese_gpt_predictions_REMOVED_CORRUPTIONS.csv', 'is_duplicate', 'predicted')
+#simpleEvaluateM('siamese_gpt_predictions_REMOVED_CORRUPTIONS.csv', 'is_duplicate', 'predicted')
 #simpleEvaluateM('siamese_preprocessed_predictions_2025-04-14_14-48-55.csv', 'is_duplicate', 'predicted')
+#simpleEvaluateM('predictions_2025-04-18_15-34-56.csv', 'is_duplicate', 'predicted')
 
 
 def evaluateM(filename, gt_column, pred_column, threshold=None):
