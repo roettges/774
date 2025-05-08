@@ -32,7 +32,7 @@ def main():
         help="""Select operation mode:
         1: Siamese Network
         2: GPT4 Analysis
-        3: Run miscDataReview.py
+        3: Run miscDataReview.py (only run if you have reviewed the script and files)
         4: Save Similarity Scores
         5: Calculate Distance Metrics for GPT4 embeddings
         6. Evaluate a Model""",
@@ -43,7 +43,7 @@ def main():
         print("\nPlease select a mode:")
         print("1: Siamese Network")
         print("2: GPT4 Analysis")
-        print("3: Classical Classifier")
+        print("3: Run miscDataReview.py (only run if you have reviewed the script and files)")
         print("4: Save Similarity Scores")
         print("5: Distance Metrics for GPT4 embeddings")
         print("6: Evaluate a Model")
