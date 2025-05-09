@@ -12,12 +12,12 @@ temp/
 # Data folder - keep structure, ignore contents
 data/*
 !data/.gitkeep
-# !data/preprocessedquestions.csv
-# output/*
+!data/preprocessedquestions.csv
+output/*
 
 # I am updating this to not send any csv files to git, so only pickle files are sent
-# *.csv
-# *.CSV
+*.csv
+*.CSV
 *.zip
 *.jsonl
 
