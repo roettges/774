@@ -271,8 +271,8 @@ The workflow creates 512-dimensional embeddings using the text-embedding-3-large
     python check_batch_runs.py
     ```
 5. Process Results Once batches are complete:
-    -Update the completed_batches dictionary in embedding_main.py with batch-to-file mappings
+    - Update the completed_batches dictionary in embedding_main.py with batch-to-file mappings
     Run python embedding_main.py again to:
-        - Download all embeddings results
-        - Add embeddings to your dataset
-        - Save as output_with_embeddings.csv
+      - Download all embeddings results
+      - Add embeddings to your dataset
+      - Save as output_with_embeddings.csv
