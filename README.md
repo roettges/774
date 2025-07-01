@@ -1,6 +1,8 @@
 # 774
 Repository for our 774 project for question matching
 
+Our final report can be found [here](https://github.com/roettges/774/blob/main/write_up/final_report.pdf)
+
 # Install requirements
 pip install numpy pandas py_stringmatching torch scikit-learn openai sentence-transformers tqdm num2words
 
